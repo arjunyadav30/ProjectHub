@@ -1,0 +1,5 @@
+{
+  "files.readonlyFromPermissions": false,
+  "security.workspace.trust.enabled": true,
+  "git.ignoreLimitWarning": true
+}
