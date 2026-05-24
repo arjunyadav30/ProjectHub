@@ -40,11 +40,12 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 const server = http.createServer(app);
+const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: frontendOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -169,7 +170,7 @@ app.use(mongoSanitize());
 
 // CORS
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: frontendOrigin,
   credentials: true,
 }));
 

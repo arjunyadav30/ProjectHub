@@ -9,7 +9,7 @@ import { Button, Input, Modal } from '../../components/common';
 import { Send, Trash2, Users, MessageSquare, Plus, Search, Video } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const SOCKET_URL = window.location.origin;
+const SOCKET_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_ORIGIN || 'http://localhost:5000').replace(/\/+$/, '');
 const QUICK_EMOJIS = ['😀', '🔥', '👍', '🎯', '✅', '🚀'];
 
 const ChatPage = () => {

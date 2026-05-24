@@ -3,7 +3,7 @@ import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 
 const RealtimeContext = createContext(null);
-const SOCKET_URL = window.location.origin;
+const SOCKET_URL = (import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_ORIGIN || 'http://localhost:5000').replace(/\/+$/, '');
 
 export const RealtimeProvider = ({ children }) => {
   const { user } = useAuth();
