@@ -28,7 +28,13 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const requestUrl = originalRequest?.url || '';
+    const isRefreshCall = requestUrl.includes('/auth/refresh-token');
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+      if (isRefreshCall) {
+        localStorage.removeItem('accessToken');
+        return Promise.reject(error);
+      }
       if (isRefreshing) {
         return new Promise((resolve, reject) => failedQueue.push({ resolve, reject }))
           .then(token => { originalRequest.headers.Authorization = `Bearer ${token}`; return api(originalRequest); });
