@@ -28,6 +28,12 @@ export const AuthProvider = ({ children }) => {
     else setLoading(false);
   }, [fetchMe]);
 
+  useEffect(() => {
+    if (!loading) return undefined;
+    const timer = setTimeout(() => setLoading(false), 15000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
   const login = async (credentials) => {
     const { data } = await authAPI.login(credentials);
     localStorage.setItem('accessToken', data.data.accessToken);
