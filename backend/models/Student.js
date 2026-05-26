@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const studentSchema = new mongoose.Schema({
   college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
-  enrollment_no: { type: String, required: true, unique: true, trim: true, uppercase: true },
+  enrollment_no: { type: String, required: true, trim: true, uppercase: true },
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, lowercase: true },
   github_link: { type: String, default: '' },
@@ -24,6 +24,7 @@ const studentSchema = new mongoose.Schema({
   is_profile_complete: { type: Boolean, default: false },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-module.exports = mongoose.model('Student', studentSchema);
-
 studentSchema.index({ college_id: 1 });
+studentSchema.index({ college_id: 1, enrollment_no: 1 }, { unique: true });
+
+module.exports = mongoose.model('Student', studentSchema);
