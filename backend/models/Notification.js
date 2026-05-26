@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const notificationSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   // legacy field name
   recipient: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -22,3 +23,5 @@ const notificationSchema = new mongoose.Schema({
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 module.exports = mongoose.model('Notification', notificationSchema);
+
+notificationSchema.index({ college_id: 1 });

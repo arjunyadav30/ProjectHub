@@ -101,7 +101,7 @@ const sendCredentialsAndTrack = async (results, email, name, tempPassword) => {
   }
 };
 
-// ─── STUDENT MANAGEMENT ────────────────────────────────────────────────
+// --- STUDENT MANAGEMENT ------------------------------------------------
 
 // GET /api/admin/students
 exports.getStudents = async (req, res, next) => {
@@ -256,7 +256,7 @@ exports.exportStudents = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── FACULTY MANAGEMENT ────────────────────────────────────────────────
+// --- FACULTY MANAGEMENT ------------------------------------------------
 
 exports.getFaculty = async (req, res, next) => {
   try {
@@ -339,7 +339,7 @@ exports.deleteFaculty = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── DASHBOARD STATS ───────────────────────────────────────────────────
+// --- DASHBOARD STATS ---------------------------------------------------
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
@@ -353,12 +353,12 @@ exports.getDashboardStats = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── WEBSITE CONFIG ────────────────────────────────────────────────────
+// --- WEBSITE CONFIG ----------------------------------------------------
 
 exports.getWebsiteConfig = async (req, res, next) => {
   try {
-    let config = await WebsiteConfig.findOne();
-    if (!config) config = await WebsiteConfig.create({ site_name: 'ProjectHub' });
+    let config = await WebsiteConfig.findOne({ college_id: req.user.college_id });
+    if (!config) config = await WebsiteConfig.create({ college_id: req.user.college_id, site_name: 'ProjectHub' });
     return apiResponse.success(res, config);
   } catch (e) { next(e); }
 };
@@ -366,8 +366,8 @@ exports.getWebsiteConfig = async (req, res, next) => {
 exports.updateWebsiteConfig = async (req, res, next) => {
   try {
     const { logo_url, hero_image_url, site_name } = req.body;
-    let config = await WebsiteConfig.findOne();
-    if (!config) config = new WebsiteConfig({});
+    let config = await WebsiteConfig.findOne({ college_id: req.user.college_id });
+    if (!config) config = new WebsiteConfig({ college_id: req.user.college_id });
     if (logo_url !== undefined) config.logo_url = logo_url;
     if (hero_image_url !== undefined) config.hero_image_url = hero_image_url;
     if (site_name) config.site_name = site_name;
@@ -377,7 +377,7 @@ exports.updateWebsiteConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── FEATURED PROJECTS ─────────────────────────────────────────────────
+// --- FEATURED PROJECTS -------------------------------------------------
 
 exports.featureProject = async (req, res, next) => {
   try {
@@ -385,8 +385,8 @@ exports.featureProject = async (req, res, next) => {
     const team = await Team.findById(team_id).populate('event_id');
     if (!team) return apiResponse.error(res, 'Team not found', 404);
 
-    let config = await WebsiteConfig.findOne();
-    if (!config) config = new WebsiteConfig({});
+    let config = await WebsiteConfig.findOne({ college_id: req.user.college_id });
+    if (!config) config = new WebsiteConfig({ college_id: req.user.college_id });
 
     // Remove if already featured
     config.featured_projects = config.featured_projects.filter(fp => fp.project_id?.toString() !== team_id);
@@ -412,7 +412,7 @@ exports.featureProject = async (req, res, next) => {
 exports.unfeatureProject = async (req, res, next) => {
   try {
     const { team_id } = req.params;
-    const config = await WebsiteConfig.findOne();
+    const config = await WebsiteConfig.findOne({ college_id: req.user.college_id });
     if (config) {
       config.featured_projects = config.featured_projects.filter(fp => fp.project_id?.toString() !== team_id);
       await config.save();
@@ -421,7 +421,7 @@ exports.unfeatureProject = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── MARKS MANAGEMENT ──────────────────────────────────────────────────
+// --- MARKS MANAGEMENT --------------------------------------------------
 
 exports.getTeamMarks = async (req, res, next) => {
   try {
@@ -439,8 +439,8 @@ exports.giveMarks = async (req, res, next) => {
     for (const m of marks_data) {
       const normalized = normalizeMarksPayload(m);
       const existing = await Marks.findOneAndUpdate(
-        { team_id, event_id, student_id: m.student_id, presentation_id: normalized.presentation_id },
-        { ...normalized, team_id, event_id, student_id: m.student_id, awarded_by: req.user._id },
+        { team_id, event_id, student_id: m.student_id, presentation_id: normalized.presentation_id, college_id: req.user.college_id },
+        { ...normalized, college_id: req.user.college_id, team_id, event_id, student_id: m.student_id, awarded_by: req.user._id },
         { upsert: true, new: true }
       );
       results.push(existing);
@@ -461,7 +461,7 @@ exports.giveMarks = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── UNREGISTERED STUDENTS FOR EVENT ──────────────────────────────────
+// --- UNREGISTERED STUDENTS FOR EVENT ----------------------------------
 
 exports.getUnregisteredStudents = async (req, res, next) => {
   try {
@@ -512,7 +512,7 @@ exports.exportUnregisteredStudents = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
-// ─── CSV TEMPLATE DOWNLOAD ────────────────────────────────────────────
+// --- CSV TEMPLATE DOWNLOAD --------------------------------------------
 
 exports.downloadStudentTemplate = (req, res) => {
   const csv = 'name,email,enrollment_no,branch,semester,year,session,phone\nJohn Doe,john@example.com,0201CS21001,CSE,3,2,2021-25,9876543210\n';

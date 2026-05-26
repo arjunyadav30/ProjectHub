@@ -238,4 +238,9 @@ export const reportAPI = {
   downloadTemplateLockDocx: () => api.get('/reports/student/minor-project/template-lock/download', { responseType: 'blob' }),
 };
 
+export const subscriptionAPI = {
+  getStatus: () => api.get('/subscription/status'),
+  activate: (plan) => api.post('/subscription/activate', { plan }),
+};
+
 export default api;

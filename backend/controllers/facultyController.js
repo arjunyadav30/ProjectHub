@@ -108,8 +108,8 @@ exports.giveMarks = async (req, res, next) => {
     for (const m of marks_data) {
       const normalized = normalizeMarksPayload(m);
       const record = await Marks.findOneAndUpdate(
-        { team_id: team._id, event_id: team.event_id._id, student_id: m.student_id, presentation_id: normalized.presentation_id },
-        { ...normalized, team_id: team._id, event_id: team.event_id._id, student_id: m.student_id, awarded_by: req.user._id },
+        { team_id: team._id, event_id: team.event_id._id, student_id: m.student_id, presentation_id: normalized.presentation_id, college_id: req.user.college_id },
+        { ...normalized, college_id: req.user.college_id, team_id: team._id, event_id: team.event_id._id, student_id: m.student_id, awarded_by: req.user._id },
         { upsert: true, new: true }
       );
       results.push(record);

@@ -16,6 +16,7 @@ const studentSchema = z.object({
   phone: z.string().optional(),
   enrollment_no: z.string().min(3, 'Enrollment number required'),
   branch: z.string().min(1, 'Select branch'),
+  college_code: z.string().min(2, 'College code required'),
 });
 
 const facultySchema = z.object({
@@ -25,6 +26,7 @@ const facultySchema = z.object({
   phone: z.string().optional(),
   faculty_id: z.string().min(2, 'Faculty ID required'),
   department: z.string().min(1, 'Department required'),
+  college_code: z.string().min(2, 'College code required'),
 });
 
 const adminSchema = z.object({
@@ -32,6 +34,8 @@ const adminSchema = z.object({
   email: z.string().email('Valid email required'),
   password: z.string().min(6, 'Min 6 characters'),
   phone: z.string().optional(),
+  college_name: z.string().min(2, 'College name required'),
+  college_code: z.string().optional(),
 });
 
 const ROLES = [
@@ -100,6 +104,7 @@ const SignupPage = () => {
 
             {role === 'student' && (
               <>
+                <Input label="Enter College Code *" placeholder="e.g. CLG123456" error={errors.college_code?.message} {...register('college_code')} />
                 <Input label="Enrollment Number *" placeholder="e.g. 0201CS21001" error={errors.enrollment_no?.message} {...register('enrollment_no')} />
                 <Select label="Branch *" error={errors.branch?.message} {...register('branch')}>
                   <option value="">Select branch</option>
@@ -109,14 +114,19 @@ const SignupPage = () => {
             )}
             {role === 'faculty' && (
               <>
+                <Input label="Enter College Code *" placeholder="e.g. CLG123456" error={errors.college_code?.message} {...register('college_code')} />
                 <Input label="Faculty ID *" placeholder="e.g. FAC001" error={errors.faculty_id?.message} {...register('faculty_id')} />
                 <Input label="Department *" placeholder="e.g. Computer Science" error={errors.department?.message} {...register('department')} />
               </>
             )}
             {role === 'admin' && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3">
-                <p className="text-xs text-amber-700 dark:text-amber-400">Admin accounts have full system access. Make sure you have authorization.</p>
-              </div>
+              <>
+                <Input label="College Name *" placeholder="e.g. ABC Engineering College" error={errors.college_name?.message} {...register('college_name')} />
+                <Input label="College Code (Optional)" placeholder="Auto-generated if empty" error={errors.college_code?.message} {...register('college_code')} />
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">Admin accounts have full system access. Make sure you have authorization.</p>
+                </div>
+              </>
             )}
 
             <Button type="submit" className="w-full" loading={isSubmitting}>Create Account</Button>

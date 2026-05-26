@@ -148,6 +148,37 @@ const HomePage = () => {
         </div>
       </section>
 
+      <section className="py-20 px-4 bg-gray-950">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold text-white">Pricing Plans</h2>
+          </div>
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-7">
+              <h3 className="text-2xl font-bold">Monthly</h3>
+              <p className="text-3xl font-extrabold mt-2">₹999<span className="text-sm text-gray-400">/month</span></p>
+              <ul className="mt-5 space-y-2 text-gray-300 text-sm">
+                <li>✓ Unlimited Events</li><li>✓ Unlimited Students & Faculty</li><li>✓ Real-Time Chat & Notifications</li>
+                <li>✓ AI Viva, Report Builder, Kanban Board</li><li>✓ GitHub Integration</li><li>✓ Email Support</li>
+              </ul>
+              <Link to="/signup" className="inline-block mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500">Get Started</Link>
+            </div>
+            <div className="bg-gray-900 border border-blue-500 rounded-2xl p-7 relative">
+              <span className="absolute top-4 right-4 text-xs bg-blue-600 px-2 py-1 rounded">Save 25%</span>
+              <h3 className="text-2xl font-bold">Yearly</h3>
+              <p className="text-3xl font-extrabold mt-2">₹8,999<span className="text-sm text-gray-400">/year</span></p>
+              <ul className="mt-5 space-y-2 text-gray-300 text-sm">
+                <li>✓ Unlimited Events</li><li>✓ Unlimited Students & Faculty</li><li>✓ Real-Time Chat & Notifications</li>
+                <li>✓ AI Viva, Report Builder, Kanban Board</li><li>✓ GitHub Integration</li><li>✓ Email Support</li>
+                <li>✓ Priority Support</li><li>✓ Early Access to New Features</li>
+              </ul>
+              <Link to="/signup" className="inline-block mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-500">Get Started</Link>
+            </div>
+          </div>
+          <p className="text-center text-gray-400 mt-6">Start with a 14-day free trial. No credit card required.</p>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-gray-950 border-t border-gray-800 py-8 text-center text-gray-500 text-sm">
         <p>© {new Date().getFullYear()} {config.site_name || 'ProjectHub'}. College Project Management System.</p>

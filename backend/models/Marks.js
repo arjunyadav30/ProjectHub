@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const marksSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   event_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
   team_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', required: true },
   student_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Student', required: true },
@@ -22,3 +23,5 @@ const marksSchema = new mongoose.Schema({
 marksSchema.index({ event_id: 1, team_id: 1, student_id: 1, presentation_id: 1 }, { unique: true });
 
 module.exports = mongoose.model('Marks', marksSchema);
+
+marksSchema.index({ college_id: 1 });

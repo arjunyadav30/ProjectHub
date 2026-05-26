@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middleware/auth');
+const { checkSubscription } = require('../middleware/subscription');
 const admin = require('../controllers/adminController');
 
-router.use(protect, authorize('admin'));
+router.use(protect, authorize('admin'), checkSubscription);
 
 // Dashboard
 router.get('/dashboard', admin.getDashboardStats);

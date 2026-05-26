@@ -20,6 +20,7 @@ import AdminFaculty from './pages/admin/Faculty';
 import AdminEvents from './pages/admin/Events';
 import AdminEventDetail from './pages/admin/EventDetail';
 import AdminWebsite from './pages/admin/Website';
+import AdminSubscription from './pages/admin/Subscription';
 
 // Faculty
 import FacultyDashboard from './pages/faculty/Dashboard';
@@ -134,6 +135,7 @@ function App() {
         <Route path="/admin/events"       element={<ProtectedRoute roles={['admin']}><AdminEvents /></ProtectedRoute>} />
         <Route path="/admin/events/:id"   element={<ProtectedRoute roles={['admin']}><AdminEventDetail /></ProtectedRoute>} />
         <Route path="/admin/website"      element={<ProtectedRoute roles={['admin']}><AdminWebsite /></ProtectedRoute>} />
+        <Route path="/subscription"       element={<ProtectedRoute roles={['admin']}><AdminSubscription /></ProtectedRoute>} />
 
         {/* ── Faculty ── */}
         <Route path="/faculty/dashboard"      element={<ProtectedRoute roles={['faculty']}><FacultyDashboard /></ProtectedRoute>} />

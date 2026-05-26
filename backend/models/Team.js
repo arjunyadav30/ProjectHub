@@ -101,6 +101,7 @@ const memberSchema = new mongoose.Schema({
 });
 
 const teamSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   event_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
   team_name: { type: String, required: true, trim: true },
   members: [memberSchema],
@@ -136,6 +137,7 @@ teamSchema.virtual('progress_stats').get(function () {
 });
 
 teamSchema.set('toJSON', { virtuals: true });
+teamSchema.index({ college_id: 1 });
 teamSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Team', teamSchema);

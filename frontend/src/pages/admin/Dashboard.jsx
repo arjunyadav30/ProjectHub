@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { adminAPI, analyticsAPI } from '../../api';
+import { adminAPI, analyticsAPI, subscriptionAPI } from '../../api';
 import { useRefetchOnFocus } from '../../hooks/useRefetchOnFocus';
 import toast from 'react-hot-toast';
 import { DashboardLayout } from '../../components/common/Layout';
@@ -11,16 +11,19 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, totalEvents: 0, activeTeams: 0 });
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
+  const [subscription, setSubscription] = useState(null);
 
   const loadDashboard = useCallback(() => {
     setLoading(true);
     Promise.all([
       adminAPI.getDashboard(),
       analyticsAPI.getAdvanced().catch(() => ({ data: { data: null } })),
+      subscriptionAPI.getStatus().catch(() => ({ data: { data: null } })),
     ])
-      .then(([dashRes, analyticsRes]) => {
+      .then(([dashRes, analyticsRes, subscriptionRes]) => {
         setStats(dashRes.data.data);
         setAnalytics(analyticsRes.data.data);
+        setSubscription(subscriptionRes.data.data?.subscription || null);
       })
       .catch(() => toast.error('Failed to refresh dashboard'))
       .finally(() => setLoading(false));
@@ -38,6 +41,20 @@ const AdminDashboard = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
+        {subscription?.status === 'expired' && (
+          <div className="card p-8 text-center">
+            <h2 className="text-xl font-bold text-white mb-3">Your subscription has expired. Please renew to continue.</h2>
+            <div className="flex items-center justify-center gap-3">
+              <Link to="/subscription" className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500">Monthly / Yearly Plans</Link>
+            </div>
+          </div>
+        )}
+        {subscription?.status === 'trial' && subscription?.expires_at && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-amber-200 text-sm">
+            You are on a free trial. {Math.max(0, Math.ceil((new Date(subscription.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days remaining.
+            <Link to="/subscription" className="ml-2 text-amber-100 underline">Upgrade Now</Link>
+          </div>
+        )}
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">System overview and quick actions</p>

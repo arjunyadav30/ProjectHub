@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const Team = require('../models/Team');
 const Student = require('../models/Student');
+const User = require('../models/User');
 const { notifyUser } = require('./realtime');
 
 const ACTIONABLE_TYPES = ['team_invite', 'leader_request', 'mentor_request'];
@@ -37,8 +38,12 @@ const createNotification = async ({
     action_token,
     action_status: action_status ?? (ACTIONABLE_TYPES.includes(type) ? 'pending' : undefined),
   };
+  const userDoc = await User.findById(targetUser).select('college_id');
+  if (!userDoc?.college_id) return null;
+  payload.college_id = userDoc.college_id;
 
   const filter = {
+    college_id: userDoc.college_id,
     user_id: targetUser,
     type,
     message,

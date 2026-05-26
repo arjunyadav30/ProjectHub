@@ -30,7 +30,7 @@ const normalizePresentationSchedules = (items = []) => {
 const getEvents = async (req, res, next) => {
   try {
     const { status, semester, branch, year, page = 1, limit = 10 } = req.query;
-    const filter = {};
+    const filter = { college_id: req.user.college_id };
 
     if (status) filter.status = status;
     if (branch) { filter.$or = [{ allowed_branches: { $size: 0 } }, { allowed_branches: branch }]; }
@@ -38,7 +38,7 @@ const getEvents = async (req, res, next) => {
 
     // For students: auto-filter by their semester
     if (req.user?.role === 'student') {
-      const studentProfile = await Student.findOne({ user_id: req.user._id });
+      const studentProfile = await Student.findOne({ user_id: req.user._id, college_id: req.user.college_id });
       if (studentProfile?.semester) {
         filter.$or = [
           { allowed_semesters: { $size: 0 } },
@@ -67,15 +67,15 @@ const getEvents = async (req, res, next) => {
 // GET /api/events/:id
 const getEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id).populate('created_by', 'name email');
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id }).populate('created_by', 'name email');
     if (!event) return apiResponse.error(res, 'Event not found', 404);
     
     let studentRegistration = null;
     if (req.user?.role === 'student') {
-      const student = await Student.findOne({ user_id: req.user._id });
+      const student = await Student.findOne({ user_id: req.user._id, college_id: req.user.college_id });
       if (student) {
         studentRegistration = await Team.findOne({
-          event_id: req.params.id,
+          event_id: req.params.id, college_id: req.user.college_id,
           members: {
             $elemMatch: {
               student_id: student._id,
@@ -105,6 +105,7 @@ const createEvent = async (req, res, next) => {
     }
 
     const event = await Event.create({
+      college_id: req.user.college_id,
       title, description,
       allowed_semesters: allowed_semesters || [],
       allowed_years: allowed_years || [],
@@ -126,7 +127,7 @@ const createEvent = async (req, res, next) => {
 // PUT /api/events/:id
 const updateEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
 
     const allowedFields = [
@@ -152,10 +153,10 @@ const updateEvent = async (req, res, next) => {
 // DELETE /api/events/:id
 const deleteEvent = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
     await Event.findByIdAndDelete(req.params.id);
-    await Team.deleteMany({ event_id: req.params.id });
+    await Team.deleteMany({ event_id: req.params.id, college_id: req.user.college_id });
     return apiResponse.success(res, null, 'Event deleted');
   } catch (error) { next(error); }
 };
@@ -163,14 +164,14 @@ const deleteEvent = async (req, res, next) => {
 // GET /api/events/:id/teams
 const getEventTeams = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
 
     const { status, page = 1, limit = 20 } = req.query;
-    const filter = { event_id: req.params.id };
+    const filter = { event_id: req.params.id, college_id: req.user.college_id };
     if (status) filter.registration_status = status;
     if (req.user?.role === 'faculty') {
-      const faculty = await Faculty.findOne({ user_id: req.user._id });
+      const faculty = await Faculty.findOne({ user_id: req.user._id, college_id: req.user.college_id });
       const isEventCreator = event.created_by?.toString() === req.user._id.toString();
       if (!isEventCreator) {
         filter.assigned_faculty = faculty?._id || null;
@@ -199,10 +200,10 @@ const getEventTeams = async (req, res, next) => {
 // GET /api/events/:id/teams/export (CSV)
 const exportTeamsCSV = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
 
-    const teams = await Team.find({ event_id: req.params.id })
+    const teams = await Team.find({ event_id: req.params.id, college_id: req.user.college_id })
       .populate('team_leader', 'name enrollment_no email')
       .populate('members.student_id', 'name enrollment_no email')
       .populate('assigned_faculty', 'name faculty_id');
@@ -226,7 +227,7 @@ const exportTeamsCSV = async (req, res, next) => {
 // PUT /api/events/:id/presentation-schedule
 const updatePresentationSchedule = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.id);
+    const event = await Event.findOne({ _id: req.params.id, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
     let nextSchedules = null;
     if (Array.isArray(req.body.presentation_schedules)) {
@@ -245,6 +246,7 @@ const updatePresentationSchedule = async (req, res, next) => {
       const scheduleTitles = scheduledItems.map(item => item.title).filter(Boolean).join(', ');
       const message = `Presentation schedule updated for "${event.title}"${scheduleTitles ? `: ${scheduleTitles}` : ''}.`;
       const teams = await Team.find({
+        college_id: req.user.college_id,
         event_id: event._id,
         registration_status: { $ne: 'rejected' },
       })

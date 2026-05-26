@@ -106,6 +106,7 @@ const createTeam = async (req, res, next) => {
     const creatorIsLeader = creatorStudent?._id.toString() === leaderStudent._id.toString();
 
     const team = await Team.create({
+      college_id: req.user.college_id,
       event_id,
       team_name,
       members: memberStudents.map(s => ({

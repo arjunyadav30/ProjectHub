@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
 const Admin = require('../models/Admin');
+const College = require('../models/College');
+const Subscription = require('../models/Subscription');
 const apiResponse = require('../utils/apiResponse');
 const {
   generateAccessToken,
@@ -16,28 +18,55 @@ const jwt = require('jsonwebtoken');
 // POST /api/auth/signup
 const signup = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, enrollment_no, branch, faculty_id, department } = req.body;
+    const { name, email, password, role, phone, enrollment_no, branch, faculty_id, department, college_name, college_code } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) return apiResponse.error(res, 'Email already registered', 409);
 
+    let collegeId = null;
+    let normalizedCode = college_code ? String(college_code).trim().toUpperCase() : '';
+
+    if (role === 'admin') {
+      if (!college_name) return apiResponse.error(res, 'College name is required for admin signup', 400);
+      if (!normalizedCode) normalizedCode = `CLG${Date.now().toString().slice(-6)}`;
+      const existingCollege = await College.findOne({ code: normalizedCode });
+      if (existingCollege) return apiResponse.error(res, 'College code already exists', 409);
+      const college = await College.create({ name: college_name, code: normalizedCode });
+      collegeId = college._id;
+    } else {
+      if (!normalizedCode) return apiResponse.error(res, 'College code is required', 400);
+      const college = await College.findOne({ code: normalizedCode });
+      if (!college) return apiResponse.error(res, 'Invalid college code', 404);
+      collegeId = college._id;
+    }
+
     const user = await User.create({
       name, email, password_hash: password, role: role || 'student',
       phone: phone || '',
+      college_id: collegeId,
     });
 
     if (role === 'student') {
       if (!enrollment_no) { await User.findByIdAndDelete(user._id); return apiResponse.error(res, 'Enrollment number required', 400); }
-      const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase() });
+      const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase(), college_id: collegeId });
       if (existingEnroll) { await User.findByIdAndDelete(user._id); return apiResponse.error(res, 'Enrollment number already registered', 409); }
-      await Student.create({ user_id: user._id, enrollment_no: enrollment_no.toUpperCase(), name, email, branch: branch || '' });
+      await Student.create({ user_id: user._id, college_id: collegeId, enrollment_no: enrollment_no.toUpperCase(), name, email, branch: branch || '' });
     } else if (role === 'faculty') {
       if (!faculty_id) { await User.findByIdAndDelete(user._id); return apiResponse.error(res, 'Faculty ID required', 400); }
-      const existingFaculty = await Faculty.findOne({ faculty_id: faculty_id.toUpperCase() });
+      const existingFaculty = await Faculty.findOne({ faculty_id: faculty_id.toUpperCase(), college_id: collegeId });
       if (existingFaculty) { await User.findByIdAndDelete(user._id); return apiResponse.error(res, 'Faculty ID already registered', 409); }
-      await Faculty.create({ user_id: user._id, faculty_id: faculty_id.toUpperCase(), name, email, department: department || '' });
+      await Faculty.create({ user_id: user._id, college_id: collegeId, faculty_id: faculty_id.toUpperCase(), name, email, department: department || '' });
     } else if (role === 'admin') {
-      await Admin.create({ user_id: user._id, name, email, phone: phone || '' });
+      await Admin.create({ user_id: user._id, college_id: collegeId, name, email, phone: phone || '' });
+      await Subscription.create({
+        college_id: collegeId,
+        admin_id: user._id,
+        status: 'trial',
+        plan: 'monthly',
+        started_at: new Date(),
+        expires_at: new Date(Date.now() + (14 * 24 * 60 * 60 * 1000)),
+        amount_paid: 0,
+      });
     }
 
     const accessToken = generateAccessToken(user._id, user.role);

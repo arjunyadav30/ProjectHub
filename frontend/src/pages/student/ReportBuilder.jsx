@@ -18,6 +18,12 @@ const ReportBuilder = () => {
   }, []);
 
   const payload = doc?.payload || { cover: {}, sections: [], teamMembers: [], snapshots: [] };
+  const [activeSection, setActiveSection] = useState('cover');
+  const sectionsNav = useMemo(() => ([
+    { key: 'cover', label: 'Cover' },
+    ...(payload.sections || []).map((s, i) => ({ key: `sec-${i}`, label: s.title || `Section ${i + 1}`, index: i })),
+    { key: 'snapshots', label: 'Appendix / Figures' },
+  ]), [payload.sections]);
 
   const updateCover = (key, value) => setDoc((prev) => ({ ...prev, payload: { ...prev.payload, cover: { ...prev.payload.cover, [key]: value } } }));
   const updateSection = (idx, value) => setDoc((prev) => ({
@@ -133,9 +139,31 @@ const ReportBuilder = () => {
           </div>
         </div>
 
-        <div className="card p-5 space-y-3">
-          <h2 className="font-semibold">Cover Page</h2>
-          <div className="grid md:grid-cols-2 gap-3">
+        <div className="flex flex-col md:flex-row gap-4">
+          <aside className="md:w-[220px] md:min-w-[220px] bg-gray-900 rounded-xl p-2 max-h-[70vh] overflow-y-auto">
+            <div className="md:block hidden space-y-1">
+              {sectionsNav.map((sec, idx) => (
+                <button key={sec.key} onClick={() => setActiveSection(sec.key)}
+                  className={`w-full text-left py-3 px-4 rounded-lg text-sm ${activeSection === sec.key ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700'}`}>
+                  {sec.label}
+                </button>
+              ))}
+            </div>
+            <select className="input md:hidden" value={activeSection} onChange={(e) => setActiveSection(e.target.value)}>
+              {sectionsNav.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+          </aside>
+
+          <div className="flex-1 space-y-4">
+            <div className="card p-4 flex items-center justify-between">
+              <p className="text-sm text-gray-300">{sectionsNav.findIndex(s => s.key === activeSection) + 1 > 0 ? `${sectionsNav.find(s => s.key === activeSection)?.label} - Slide ${sectionsNav.findIndex(s => s.key === activeSection) + 1}/${sectionsNav.length}` : ''}</p>
+              <p className="text-xs text-gray-400">Auto-save enabled</p>
+            </div>
+
+            {activeSection === 'cover' && (
+              <div className="card p-5 space-y-3">
+                <h2 className="font-semibold">Cover Page</h2>
+                <div className="grid md:grid-cols-2 gap-3">
             <Input label="Institute" value={payload.cover?.institute || ''} onChange={(e) => updateCover('institute', e.target.value)} />
             <Input label="Department" value={payload.cover?.department || ''} onChange={(e) => updateCover('department', e.target.value)} />
             <Input label="Report Title" value={payload.cover?.reportTitle || ''} onChange={(e) => updateCover('reportTitle', e.target.value)} />
@@ -144,34 +172,36 @@ const ReportBuilder = () => {
             <Input label="Enrollment No" value={payload.cover?.enrollmentNo || ''} onChange={(e) => updateCover('enrollmentNo', e.target.value)} />
             <Input label="Guide Name" value={payload.cover?.guideName || ''} onChange={(e) => updateCover('guideName', e.target.value)} />
             <Input label="Academic Year" value={payload.cover?.academicYear || ''} onChange={(e) => updateCover('academicYear', e.target.value)} />
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {(payload.sections || []).map((sec, idx) => (
-            <div key={sec.key || idx} className="card p-5 space-y-2">
-              <h3 className="font-semibold">{sec.title}</h3>
-              <textarea
-                className="input min-h-[120px]"
-                value={sec.content || ''}
-                onChange={(e) => updateSection(idx, e.target.value)}
-                placeholder={`Write ${sec.title}...`}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="card p-5 space-y-3">
-          <h2 className="font-semibold">Snapshots / Figures</h2>
-          <input type="file" accept="image/*" onChange={(e) => addSnapshot(e.target.files?.[0])} className="input" />
-          <div className="grid md:grid-cols-2 gap-4">
-            {(payload.snapshots || []).map((snap, idx) => (
-              <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
-                {snap.imageData && <img src={snap.imageData} alt="snapshot" className="w-full h-44 object-cover rounded-lg" />}
-                <Input label="Caption" value={snap.caption || ''} onChange={(e) => updateSnapshot(idx, 'caption', e.target.value)} />
-                <Button size="sm" variant="danger" onClick={() => removeSnapshot(idx)}>Remove</Button>
+                </div>
               </div>
-            ))}
+            )}
+
+            {activeSection.startsWith('sec-') && (
+              <div className="space-y-3">
+                {(payload.sections || []).map((sec, idx) => activeSection === `sec-${idx}` ? (
+                  <div key={sec.key || idx} className="card p-5 space-y-2">
+                    <h3 className="font-semibold">{sec.title}</h3>
+                    <textarea className="input min-h-[120px]" value={sec.content || ''} onChange={(e) => updateSection(idx, e.target.value)} placeholder={`Write ${sec.title}...`} />
+                  </div>
+                ) : null)}
+              </div>
+            )}
+
+            {activeSection === 'snapshots' && (
+              <div className="card p-5 space-y-3">
+                <h2 className="font-semibold">Snapshots / Figures</h2>
+                <input type="file" accept="image/*" onChange={(e) => addSnapshot(e.target.files?.[0])} className="input" />
+                <div className="grid md:grid-cols-2 gap-4">
+                  {(payload.snapshots || []).map((snap, idx) => (
+                    <div key={idx} className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 space-y-2">
+                      {snap.imageData && <img src={snap.imageData} alt="snapshot" className="w-full h-44 object-cover rounded-lg" />}
+                      <Input label="Caption" value={snap.caption || ''} onChange={(e) => updateSnapshot(idx, 'caption', e.target.value)} />
+                      <Button size="sm" variant="danger" onClick={() => removeSnapshot(idx)}>Remove</Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

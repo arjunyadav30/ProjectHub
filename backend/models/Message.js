@@ -6,6 +6,7 @@ const readReceiptSchema = new mongoose.Schema({
 }, { _id: false });
 
 const messageSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   sender_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   receiver_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   team_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null },
@@ -19,4 +20,5 @@ const messageSchema = new mongoose.Schema({
   read_by: [readReceiptSchema],
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
+messageSchema.index({ college_id: 1 });
 module.exports = mongoose.model('Message', messageSchema);

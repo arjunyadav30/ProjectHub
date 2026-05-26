@@ -12,6 +12,7 @@ const presentationScheduleSchema = new mongoose.Schema({
 }, { _id: true, timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 const eventSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, required: true },
   created_by: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -46,4 +47,5 @@ eventSchema.methods.updateStatus = function () {
   else this.status = 'upcoming';
 };
 
+eventSchema.index({ college_id: 1 });
 module.exports = mongoose.model('Event', eventSchema);

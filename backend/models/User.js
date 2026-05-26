@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password_hash: { type: String, required: true },
@@ -44,3 +45,5 @@ userSchema.methods.toSafeObject = function () {
 };
 
 module.exports = mongoose.model('User', userSchema);
+
+userSchema.index({ college_id: 1 });

@@ -39,7 +39,7 @@ exports.getGroupMessages = async (req, res, next) => {
     const access = await getTeamAccessForUser(req.user, req.params.teamId);
     if (!access) return apiResponse.error(res, 'Not allowed to access this team chat', 403);
 
-    const messages = await Message.find({ team_id: req.params.teamId, chat_type: 'group' })
+    const messages = await Message.find({ team_id: req.params.teamId, chat_type: 'group', college_id: req.user.college_id })
       .populate('sender_id', 'name profile_image role')
       .sort({ created_at: 1 })
       .limit(100);
@@ -78,6 +78,7 @@ exports.sendGroupMessage = async (req, res, next) => {
     if (!access) return apiResponse.error(res, 'Not allowed to access this team chat', 403);
 
     const msg = await Message.create({
+      college_id: req.user.college_id,
       sender_id: req.user._id,
       team_id: req.params.teamId,
       chat_type: 'group',
@@ -119,6 +120,7 @@ exports.sendDirectMessage = async (req, res, next) => {
     if (!content && !image_url && !file_url) return apiResponse.error(res, 'Message, image, or file required', 400);
 
     const msg = await Message.create({
+      college_id: req.user.college_id,
       sender_id: req.user._id,
       receiver_id: req.params.userId,
       chat_type: 'individual',

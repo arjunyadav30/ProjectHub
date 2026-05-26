@@ -32,6 +32,7 @@ const videoRoutes = require('./routes/video');
 const vivaRoutes = require('./routes/viva');
 const portfolioRoutes = require('./routes/portfolio');
 const reportRoutes = require('./routes/reports');
+const subscriptionRoutes = require('./routes/subscription');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initRealtime } = require('./utils/realtime');
 
@@ -203,6 +204,7 @@ app.use('/api/video', videoRoutes);
 app.use('/api/viva', vivaRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'ProjectHub API running', timestamp: new Date() }));
