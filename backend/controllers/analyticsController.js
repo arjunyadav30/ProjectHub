@@ -5,9 +5,9 @@ const apiResponse = require('../utils/apiResponse');
 
 exports.getAdvancedAnalytics = async (req, res, next) => {
   try {
-    const teams = await Team.find({}).populate('event_id', 'department title').lean();
-    const facultyCount = await Faculty.countDocuments({ status: 'active' });
-    const studentCount = await Student.countDocuments({ status: 'active' });
+    const teams = await Team.find({ college_id: req.user.college_id }).populate('event_id', 'department title').lean();
+    const facultyCount = await Faculty.countDocuments({ status: 'active', college_id: req.user.college_id });
+    const studentCount = await Student.countDocuments({ status: 'active', college_id: req.user.college_id });
 
     const completion = teams.map((team) => {
       const modules = team.project?.modules || [];

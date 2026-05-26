@@ -107,7 +107,7 @@ const sendCredentialsAndTrack = async (results, email, name, tempPassword) => {
 exports.getStudents = async (req, res, next) => {
   try {
     const { branch, semester, year, status, search, page = 1, limit = 10 } = req.query;
-    const filter = {};
+    const filter = { college_id: req.user.college_id };
     if (branch) filter.branch = branch;
     if (semester) filter.semester = parseInt(semester);
     if (year) filter.year = parseInt(year);
@@ -135,14 +135,15 @@ exports.getStudents = async (req, res, next) => {
 exports.addStudent = async (req, res, next) => {
   try {
     const { name, email, enrollment_no, branch, semester, year, session, phone } = req.body;
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({ email, college_id: req.user.college_id });
     if (existing) return apiResponse.error(res, 'Email already registered', 409);
-    const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no?.toUpperCase() });
+    const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no?.toUpperCase(), college_id: req.user.college_id });
     if (existingEnroll) return apiResponse.error(res, 'Enrollment number already exists', 409);
 
     const tempPassword = generateTempPassword();
-    const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', phone: phone || '' });
+    const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', phone: phone || '', college_id: req.user.college_id });
     const student = await Student.create({
+      college_id: req.user.college_id,
       user_id: user._id, enrollment_no: enrollment_no.toUpperCase(),
       name, email, branch: branch || '', semester: semester || null,
       year: year || null, session: session || '', phone: phone || '',
@@ -169,14 +170,15 @@ exports.bulkImportStudents = async (req, res, next) => {
         const { name, email, enrollment_no, branch, semester, year, session, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name and email required' }); continue; }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email, college_id: req.user.college_id });
         if (existingUser) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
         const tempPassword = generateTempPassword();
-        const user = await User.create({ name, email, password_hash: tempPassword, role: 'student' });
+        const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', college_id: req.user.college_id });
 
         const finalEnrollment = enrollment_no || `TEMP${Date.now()}${Math.floor(Math.random() * 100)}`;
         await Student.create({
+          college_id: req.user.college_id,
           user_id: user._id, enrollment_no: finalEnrollment.toUpperCase(),
           name, email, branch: branch || '', semester: semester || null,
           year: year || null, session: session || '', phone: phone || '',
@@ -196,7 +198,7 @@ exports.bulkImportStudents = async (req, res, next) => {
 // PUT /api/admin/students/:id
 exports.updateStudent = async (req, res, next) => {
   try {
-    const student = await Student.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const student = await Student.findOneAndUpdate({ _id: req.params.id, college_id: req.user.college_id }, req.body, { new: true, runValidators: true });
     if (!student) return apiResponse.error(res, 'Student not found', 404);
     return apiResponse.success(res, student, 'Student updated');
   } catch (e) { next(e); }
@@ -205,7 +207,7 @@ exports.updateStudent = async (req, res, next) => {
 // DELETE /api/admin/students/:id (soft delete)
 exports.deleteStudent = async (req, res, next) => {
   try {
-    const student = await Student.findByIdAndUpdate(req.params.id, { status: 'inactive' }, { new: true });
+    const student = await Student.findOneAndUpdate({ _id: req.params.id, college_id: req.user.college_id }, { status: 'inactive' }, { new: true });
     if (!student) return apiResponse.error(res, 'Student not found', 404);
     await User.findByIdAndUpdate(student.user_id, { status: 'inactive' });
     return apiResponse.success(res, null, 'Student deactivated');
@@ -218,12 +220,12 @@ exports.promoteStudents = async (req, res, next) => {
     const { from_semester, to_semester } = req.body;
     if (!from_semester || !to_semester) return apiResponse.error(res, 'from_semester and to_semester required', 400);
     const result = await Student.updateMany(
-      { semester: parseInt(from_semester), status: 'active' },
+      { semester: parseInt(from_semester), status: 'active', college_id: req.user.college_id },
       { semester: parseInt(to_semester), year: Math.ceil(parseInt(to_semester) / 2) }
     );
 
     // Send notifications
-    const students = await Student.find({ semester: parseInt(to_semester), status: 'active' });
+    const students = await Student.find({ semester: parseInt(to_semester), status: 'active', college_id: req.user.college_id });
     for (const s of students.slice(0, 50)) { // limit batch
       await createNotification({
         recipient: s.user_id, type: 'semester_promoted',
@@ -240,7 +242,7 @@ exports.promoteStudents = async (req, res, next) => {
 exports.exportStudents = async (req, res, next) => {
   try {
     const { branch, semester, year } = req.query;
-    const filter = {};
+    const filter = { college_id: req.user.college_id };
     if (branch) filter.branch = branch;
     if (semester) filter.semester = parseInt(semester);
     if (year) filter.year = parseInt(year);
@@ -261,7 +263,7 @@ exports.exportStudents = async (req, res, next) => {
 exports.getFaculty = async (req, res, next) => {
   try {
     const { department, status, search, page = 1, limit = 10 } = req.query;
-    const filter = {};
+    const filter = { college_id: req.user.college_id };
     if (department) filter.department = department;
     if (status) filter.status = status;
     if (search) filter.$or = [
@@ -280,12 +282,13 @@ exports.getFaculty = async (req, res, next) => {
 exports.addFaculty = async (req, res, next) => {
   try {
     const { name, email, faculty_id, department, designation, phone } = req.body;
-    const existing = await User.findOne({ email });
+    const existing = await User.findOne({ email, college_id: req.user.college_id });
     if (existing) return apiResponse.error(res, 'Email already registered', 409);
 
     const tempPassword = generateTempPassword();
-    const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '' });
+    const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id });
     const faculty = await Faculty.create({
+      college_id: req.user.college_id,
       user_id: user._id, faculty_id: (faculty_id || `FAC${Date.now()}`).toUpperCase(),
       name, email, department: department || '', designation: designation || '', phone: phone || '',
     });
@@ -305,12 +308,13 @@ exports.bulkImportFaculty = async (req, res, next) => {
       try {
         const { name, email, faculty_id, department, designation, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name/email required' }); continue; }
-        const exists = await User.findOne({ email });
+        const exists = await User.findOne({ email, college_id: req.user.college_id });
         if (exists) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
         const tempPassword = generateTempPassword();
-        const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '' });
+        const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id });
         await Faculty.create({
+          college_id: req.user.college_id,
           user_id: user._id, faculty_id: (faculty_id || `FAC${Date.now()}${Math.floor(Math.random()*100)}`).toUpperCase(),
           name, email, department: department || '', designation: designation || '', phone: phone || '',
         });
@@ -324,7 +328,7 @@ exports.bulkImportFaculty = async (req, res, next) => {
 
 exports.updateFaculty = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const faculty = await Faculty.findOneAndUpdate({ _id: req.params.id, college_id: req.user.college_id }, req.body, { new: true });
     if (!faculty) return apiResponse.error(res, 'Faculty not found', 404);
     return apiResponse.success(res, faculty, 'Faculty updated');
   } catch (e) { next(e); }
@@ -332,7 +336,7 @@ exports.updateFaculty = async (req, res, next) => {
 
 exports.deleteFaculty = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findByIdAndUpdate(req.params.id, { status: 'inactive' }, { new: true });
+    const faculty = await Faculty.findOneAndUpdate({ _id: req.params.id, college_id: req.user.college_id }, { status: 'inactive' }, { new: true });
     if (!faculty) return apiResponse.error(res, 'Faculty not found', 404);
     await User.findByIdAndUpdate(faculty.user_id, { status: 'inactive' });
     return apiResponse.success(res, null, 'Faculty deactivated');
@@ -344,10 +348,10 @@ exports.deleteFaculty = async (req, res, next) => {
 exports.getDashboardStats = async (req, res, next) => {
   try {
     const [totalStudents, totalFaculty, totalEvents, activeTeams] = await Promise.all([
-      Student.countDocuments({ status: 'active' }),
-      Faculty.countDocuments({ status: 'active' }),
-      Event.countDocuments(),
-      Team.countDocuments({ registration_status: 'approved' }),
+      Student.countDocuments({ status: 'active', college_id: req.user.college_id }),
+      Faculty.countDocuments({ status: 'active', college_id: req.user.college_id }),
+      Event.countDocuments({ college_id: req.user.college_id }),
+      Team.countDocuments({ registration_status: 'approved', college_id: req.user.college_id }),
     ]);
     return apiResponse.success(res, { totalStudents, totalFaculty, totalEvents, activeTeams });
   } catch (e) { next(e); }
@@ -382,7 +386,7 @@ exports.updateWebsiteConfig = async (req, res, next) => {
 exports.featureProject = async (req, res, next) => {
   try {
     const { team_id, deployed_link } = req.body;
-    const team = await Team.findById(team_id).populate('event_id');
+    const team = await Team.findOne({ _id: team_id, college_id: req.user.college_id }).populate('event_id');
     if (!team) return apiResponse.error(res, 'Team not found', 404);
 
     let config = await WebsiteConfig.findOne({ college_id: req.user.college_id });
@@ -398,7 +402,7 @@ exports.featureProject = async (req, res, next) => {
     await config.save();
 
     // Also add to event's featured list
-    await Event.findByIdAndUpdate(team.event_id._id, {
+    await Event.findOneAndUpdate({ _id: team.event_id._id, college_id: req.user.college_id }, {
       $push: { featured_projects: { project_id: team._id, deployed_link: deployed_link || '', title: team.project?.title || team.team_name } },
     });
 
@@ -425,7 +429,7 @@ exports.unfeatureProject = async (req, res, next) => {
 
 exports.getTeamMarks = async (req, res, next) => {
   try {
-    const marks = await Marks.find({ team_id: req.params.teamId })
+    const marks = await Marks.find({ team_id: req.params.teamId, college_id: req.user.college_id })
       .populate('student_id', 'name enrollment_no')
       .populate('awarded_by', 'name');
     return apiResponse.success(res, marks);
@@ -446,7 +450,7 @@ exports.giveMarks = async (req, res, next) => {
       results.push(existing);
 
       // Notify student
-      const student = await require('../models/Student').findById(m.student_id);
+      const student = await require('../models/Student').findOne({ _id: m.student_id, college_id: req.user.college_id });
       if (student) {
         await createNotification({
           recipient: student.user_id,
@@ -465,18 +469,18 @@ exports.giveMarks = async (req, res, next) => {
 
 exports.getUnregisteredStudents = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.eventId);
+    const event = await Event.findOne({ _id: req.params.eventId, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
 
     // Get all teams in this event
-    const teams = await Team.find({ event_id: event._id });
+    const teams = await Team.find({ event_id: event._id, college_id: req.user.college_id });
     const registeredStudentIds = new Set();
     teams.forEach(team => {
       team.members.forEach(m => registeredStudentIds.add(m.student_id.toString()));
     });
 
     // Build filter for eligible students
-    const filter = { status: 'active' };
+    const filter = { status: 'active', college_id: req.user.college_id };
     if (event.allowed_semesters?.length > 0) filter.semester = { $in: event.allowed_semesters };
     if (event.allowed_branches?.length > 0) filter.branch = { $in: event.allowed_branches };
 
@@ -489,14 +493,14 @@ exports.getUnregisteredStudents = async (req, res, next) => {
 
 exports.exportUnregisteredStudents = async (req, res, next) => {
   try {
-    const event = await Event.findById(req.params.eventId);
+    const event = await Event.findOne({ _id: req.params.eventId, college_id: req.user.college_id });
     if (!event) return apiResponse.error(res, 'Event not found', 404);
 
-    const teams = await Team.find({ event_id: event._id });
+    const teams = await Team.find({ event_id: event._id, college_id: req.user.college_id });
     const registeredStudentIds = new Set();
     teams.forEach(t => t.members.forEach(m => registeredStudentIds.add(m.student_id.toString())));
 
-    const filter = { status: 'active' };
+    const filter = { status: 'active', college_id: req.user.college_id };
     if (event.allowed_semesters?.length > 0) filter.semester = { $in: event.allowed_semesters };
 
     const allEligible = await Student.find(filter);
