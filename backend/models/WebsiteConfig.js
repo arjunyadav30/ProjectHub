@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const websiteConfigSchema = new mongoose.Schema({
-  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true },
   logo_url: { type: String, default: '' },
   hero_image_url: { type: String, default: '' },
   site_name: { type: String, default: 'ProjectHub' },
