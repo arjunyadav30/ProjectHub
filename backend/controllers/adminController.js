@@ -138,14 +138,22 @@ exports.addStudent = async (req, res, next) => {
     const { name, email, enrollment_no, branch, semester, year, session, phone } = req.body;
     const existing = await User.findOne({ email, college_id: req.user.college_id });
     if (existing) return apiResponse.error(res, 'Email already registered', 409);
-    const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no?.toUpperCase(), college_id: req.user.college_id });
-    if (existingEnroll) return apiResponse.error(res, 'Enrollment number already exists', 409);
+
+    if (!name || !email) {
+      return apiResponse.error(res, 'Name and email are required', 400);
+    }
+
+    if (enrollment_no) {
+      const existingEnroll = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase(), college_id: req.user.college_id });
+      if (existingEnroll) return apiResponse.error(res, 'Enrollment number already exists', 409);
+    }
 
     const tempPassword = generateTempPassword();
     const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', phone: phone || '', college_id: req.user.college_id });
+    const finalEnrollment = enrollment_no || `TEMP${Date.now()}${Math.floor(Math.random() * 100)}`;
     const student = await Student.create({
       college_id: req.user.college_id,
-      user_id: user._id, enrollment_no: enrollment_no.toUpperCase(),
+      user_id: user._id, enrollment_no: finalEnrollment.toUpperCase(),
       name, email, branch: branch || '', semester: semester || null,
       year: year || null, session: session || '', phone: phone || '',
     });

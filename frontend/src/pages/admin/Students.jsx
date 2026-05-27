@@ -31,7 +31,7 @@ const AdminStudents = () => {
   const [promoteTo, setPromoteTo] = useState('');
 
   // Add form
-  const [addForm, setAddForm] = useState({ name: '', email: '', enrollment_no: '', branch: '', semester: '', year: '', session: '', phone: '' });
+  const [addForm, setAddForm] = useState({ name: '', email: '' });
 
   const fileInputRef = useRef();
 
@@ -50,16 +50,16 @@ const AdminStudents = () => {
   useEffect(() => { fetchStudents(); }, [page, filters]);
 
   const handleAdd = async () => {
-    if (!addForm.name || !addForm.email || !addForm.enrollment_no) {
-      toast.error('Name, email, and enrollment number are required');
+    if (!addForm.name || !addForm.email) {
+      toast.error('Name and email are required');
       return;
     }
     setSaving(true);
     try {
-      await adminAPI.addStudent(addForm);
+      await adminAPI.addStudent({ name: addForm.name, email: addForm.email });
       toast.success('Student added and credentials emailed');
       setShowAddModal(false);
-      setAddForm({ name: '', email: '', enrollment_no: '', branch: '', semester: '', year: '', session: '', phone: '' });
+      setAddForm({ name: '', email: '' });
       fetchStudents();
     } catch (e) { toast.error(getErrorMessage(e)); }
     finally { setSaving(false); }
@@ -316,28 +316,6 @@ const AdminStudents = () => {
             <Input label="Name *" value={addForm.name} onChange={e => setAddForm(f=>({...f,name:e.target.value}))} />
             <Input label="Email *" type="email" value={addForm.email} onChange={e => setAddForm(f=>({...f,email:e.target.value}))} />
           </div>
-          <Input label="Enrollment No *" value={addForm.enrollment_no} onChange={e => setAddForm(f=>({...f,enrollment_no:e.target.value}))} placeholder="e.g. 0201CS21001" />
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Branch</label>
-              <select className="input w-full" value={addForm.branch} onChange={e => setAddForm(f=>({...f,branch:e.target.value}))}>
-                <option value="">Select...</option>
-                {BRANCHES.map(b => <option key={b}>{b}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Semester</label>
-              <select className="input w-full" value={addForm.semester} onChange={e => setAddForm(f=>({...f,semester:e.target.value}))}>
-                <option value="">Select...</option>
-                {SEMESTERS.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Input label="Year" type="number" min={1} max={4} value={addForm.year || ''} onChange={e => setAddForm(f=>({...f,year:e.target.value}))} />
-            <Input label="Session" value={addForm.session} placeholder="2021-25" onChange={e => setAddForm(f=>({...f,session:e.target.value}))} />
-          </div>
-          <Input label="Phone" value={addForm.phone} onChange={e => setAddForm(f=>({...f,phone:e.target.value}))} />
           <p className="text-xs text-gray-500">A temporary password will be auto-generated and emailed to the student.</p>
           <div className="flex gap-2">
             <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
