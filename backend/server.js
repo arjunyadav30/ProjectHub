@@ -36,9 +36,6 @@ const subscriptionRoutes = require('./routes/subscription');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initRealtime } = require('./utils/realtime');
 
-const dns = require('dns');
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
-
 const app = express();
 const server = http.createServer(app);
 const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');

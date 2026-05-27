@@ -11,7 +11,6 @@ const createTransporter = (port, secure) => nodemailer.createTransport({
   host: smtpHost,
   port,
   secure,
-  family: 4,
   requireTLS: !secure,
   connectionTimeout: parseInt(process.env.EMAIL_CONNECTION_TIMEOUT || '20000'),
   greetingTimeout: parseInt(process.env.EMAIL_GREETING_TIMEOUT || '15000'),
