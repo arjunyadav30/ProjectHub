@@ -14,4 +14,3 @@ const adminSchema = new mongoose.Schema({
 
 module.exports = mongoose.model('Admin', adminSchema);
 
-adminSchema.index({ college_id: 1 });

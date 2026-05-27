@@ -18,7 +18,6 @@ const facultySchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'inactive'], default: 'active' },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-facultySchema.index({ college_id: 1 });
 facultySchema.index({ college_id: 1, faculty_id: 1 }, { unique: true });
 
 module.exports = mongoose.model('Faculty', facultySchema);

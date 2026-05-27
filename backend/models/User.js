@@ -46,4 +46,3 @@ userSchema.methods.toSafeObject = function () {
 
 module.exports = mongoose.model('User', userSchema);
 
-userSchema.index({ college_id: 1 });

@@ -24,4 +24,3 @@ const notificationSchema = new mongoose.Schema({
 
 module.exports = mongoose.model('Notification', notificationSchema);
 
-notificationSchema.index({ college_id: 1 });

@@ -24,4 +24,3 @@ marksSchema.index({ event_id: 1, team_id: 1, student_id: 1, presentation_id: 1 }
 
 module.exports = mongoose.model('Marks', marksSchema);
 
-marksSchema.index({ college_id: 1 });

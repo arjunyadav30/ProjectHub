@@ -11,6 +11,14 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     port: parseInt(process.env.EMAIL_PORT || '587'),
     secure: false,
     family: 4,
+    requireTLS: true,
+    connectionTimeout: parseInt(process.env.EMAIL_CONNECTION_TIMEOUT || '20000'),
+    greetingTimeout: parseInt(process.env.EMAIL_GREETING_TIMEOUT || '15000'),
+    socketTimeout: parseInt(process.env.EMAIL_SOCKET_TIMEOUT || '30000'),
+    tls: {
+      minVersion: 'TLSv1.2',
+      servername: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    },
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,

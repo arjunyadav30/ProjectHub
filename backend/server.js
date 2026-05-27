@@ -43,6 +43,9 @@ const app = express();
 const server = http.createServer(app);
 const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
 
+// Render/NGINX proxy ke peeche real client IP trust karna zaroori hai (rate-limit ke liye)
+app.set('trust proxy', 1);
+
 // Socket.io setup
 const io = new Server(server, {
   cors: {

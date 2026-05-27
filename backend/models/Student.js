@@ -24,7 +24,6 @@ const studentSchema = new mongoose.Schema({
   is_profile_complete: { type: Boolean, default: false },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-studentSchema.index({ college_id: 1 });
 studentSchema.index({ college_id: 1, enrollment_no: 1 }, { unique: true });
 
 module.exports = mongoose.model('Student', studentSchema);

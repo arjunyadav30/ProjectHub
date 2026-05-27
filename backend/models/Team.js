@@ -137,7 +137,6 @@ teamSchema.virtual('progress_stats').get(function () {
 });
 
 teamSchema.set('toJSON', { virtuals: true });
-teamSchema.index({ college_id: 1 });
 teamSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Team', teamSchema);

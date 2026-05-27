@@ -20,5 +20,4 @@ const messageSchema = new mongoose.Schema({
   read_by: [readReceiptSchema],
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
-messageSchema.index({ college_id: 1 });
 module.exports = mongoose.model('Message', messageSchema);

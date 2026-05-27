@@ -47,5 +47,4 @@ eventSchema.methods.updateStatus = function () {
   else this.status = 'upcoming';
 };
 
-eventSchema.index({ college_id: 1 });
 module.exports = mongoose.model('Event', eventSchema);
