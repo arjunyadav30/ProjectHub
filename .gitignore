@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+**/node_modules/
+
+# env files
+.env
+**/.env
+**/.env.*
+!**/.env.example
+
+# logs
+*.log
+**/*-dev.log
+
+# build artifacts
+frontend/dist/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

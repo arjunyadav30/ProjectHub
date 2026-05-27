@@ -11,6 +11,7 @@ const { sendCredentialsEmail } = require('../utils/sendEmail');
 const { createNotification } = require('../utils/notifications');
 const { notifyTeamStakeholders, notifyEventUpdate } = require('../utils/realtime');
 const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 
 const normalizeMarksPayload = (m = {}) => {
   const labelMarks = Array.isArray(m.label_marks)
@@ -166,28 +167,42 @@ exports.bulkImportStudents = async (req, res, next) => {
     const results = { created: 0, failed: [], total: students.length, emailsSent: 0, emailsFailed: 0, emailErrors: [] };
 
     for (const row of students) {
+      let session;
       try {
-        const { name, email, enrollment_no, branch, semester, year, session, phone } = normalizeImportRow(row);
+        const { name, email, enrollment_no, branch, semester, year, session: academicSession, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name and email required' }); continue; }
 
         const existingUser = await User.findOne({ email, college_id: req.user.college_id });
         if (existingUser) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
+        session = await mongoose.startSession();
+        session.startTransaction();
+
         const tempPassword = generateTempPassword();
-        const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', college_id: req.user.college_id });
+        const user = await User.create([{
+          name, email, password_hash: tempPassword, role: 'student', college_id: req.user.college_id,
+        }], { session });
 
         const finalEnrollment = enrollment_no || `TEMP${Date.now()}${Math.floor(Math.random() * 100)}`;
-        await Student.create({
+        await Student.create([{
           college_id: req.user.college_id,
-          user_id: user._id, enrollment_no: finalEnrollment.toUpperCase(),
+          user_id: user[0]._id, enrollment_no: finalEnrollment.toUpperCase(),
           name, email, branch: branch || '', semester: semester || null,
-          year: year || null, session: session || '', phone: phone || '',
-        });
+          year: year || null, session: academicSession || '', phone: phone || '',
+        }], { session });
 
-        await sendCredentialsAndTrack(results, email, name, tempPassword);
+        const emailStatus = await sendCredentialsAndTrack(results, email, name, tempPassword);
+        if (!emailStatus.sent) {
+          throw new Error(`Credentials email failed: ${emailStatus.reason || 'unknown error'}`);
+        }
+
+        await session.commitTransaction();
         results.created++;
       } catch (err) {
         results.failed.push({ email: row.email, reason: err.message });
+        if (session?.inTransaction()) await session.abortTransaction();
+      } finally {
+        if (session) await session.endSession();
       }
     }
 
@@ -305,22 +320,39 @@ exports.bulkImportFaculty = async (req, res, next) => {
 
     const results = { created: 0, failed: [], total: facultyList.length, emailsSent: 0, emailsFailed: 0, emailErrors: [] };
     for (const row of facultyList) {
+      let session;
       try {
         const { name, email, faculty_id, department, designation, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name/email required' }); continue; }
         const exists = await User.findOne({ email, college_id: req.user.college_id });
         if (exists) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
+        session = await mongoose.startSession();
+        session.startTransaction();
+
         const tempPassword = generateTempPassword();
-        const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id });
-        await Faculty.create({
+        const user = await User.create([{
+          name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id,
+        }], { session });
+        await Faculty.create([{
           college_id: req.user.college_id,
-          user_id: user._id, faculty_id: (faculty_id || `FAC${Date.now()}${Math.floor(Math.random()*100)}`).toUpperCase(),
+          user_id: user[0]._id, faculty_id: (faculty_id || `FAC${Date.now()}${Math.floor(Math.random()*100)}`).toUpperCase(),
           name, email, department: department || '', designation: designation || '', phone: phone || '',
-        });
-        await sendCredentialsAndTrack(results, email, name, tempPassword);
+        }], { session });
+
+        const emailStatus = await sendCredentialsAndTrack(results, email, name, tempPassword);
+        if (!emailStatus.sent) {
+          throw new Error(`Credentials email failed: ${emailStatus.reason || 'unknown error'}`);
+        }
+
+        await session.commitTransaction();
         results.created++;
-      } catch (err) { results.failed.push({ email: row.email, reason: err.message }); }
+      } catch (err) {
+        results.failed.push({ email: row.email, reason: err.message });
+        if (session?.inTransaction()) await session.abortTransaction();
+      } finally {
+        if (session) await session.endSession();
+      }
     }
     return apiResponse.success(res, results, `${results.created} faculty created`);
   } catch (e) { next(e); }
