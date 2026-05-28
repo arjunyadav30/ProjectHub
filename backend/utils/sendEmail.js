@@ -1,12 +1,25 @@
 const transporter = require('../config/nodemailer');
 
+const emailSendTimeout = parseInt(process.env.EMAIL_SEND_TIMEOUT || '15000');
+
+const withTimeout = (promise, timeoutMs) => {
+  let timeout;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeout = setTimeout(() => {
+      reject(new Error(`Email send timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeout));
+};
+
 const sendEmail = async ({ to, subject, html }) => {
-  return transporter.sendMail({
+  return withTimeout(transporter.sendMail({
     from: `"ProjectHub" <${process.env.EMAIL_USER || 'no-reply@projecthub.local'}>`,
     to,
     subject,
     html,
-  });
+  }), emailSendTimeout);
 };
 
 exports.sendCredentialsEmail = async (email, name, loginEmail, password) => {
