@@ -6,6 +6,7 @@ dns.setDefaultResultOrder?.('ipv4first');
 const smtpHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
 const smtpPort = parseInt(process.env.EMAIL_PORT || '587');
 const smtpSecure = String(process.env.EMAIL_SECURE || '').toLowerCase() === 'true' || smtpPort === 465;
+const smtpFallbackEnabled = String(process.env.EMAIL_SMTP_FALLBACK || 'true').toLowerCase() !== 'false';
 
 const createTransporter = (port, secure) => nodemailer.createTransport({
   host: smtpHost,
@@ -34,7 +35,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
     : smtpPort === 465
       ? { port: 587, secure: false }
       : null;
-  const fallbackTransporter = fallbackConfig
+  const fallbackTransporter = smtpFallbackEnabled && fallbackConfig
     ? createTransporter(fallbackConfig.port, fallbackConfig.secure)
     : null;
 
