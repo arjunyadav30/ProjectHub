@@ -29,9 +29,14 @@ let transporter;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   const primaryTransporter = createTransporter(smtpPort, smtpSecure);
-  const fallbackTransporter = smtpPort === 587
-    ? createTransporter(465, true)
-    : createTransporter(587, false);
+  const fallbackConfig = smtpPort === 587
+    ? { port: 465, secure: true }
+    : smtpPort === 465
+      ? { port: 587, secure: false }
+      : null;
+  const fallbackTransporter = fallbackConfig
+    ? createTransporter(fallbackConfig.port, fallbackConfig.secure)
+    : null;
 
   transporter = {
     sendMail: async (options) => {
@@ -42,7 +47,7 @@ if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         const code = String(error?.code || '').toUpperCase();
         const isTimeout = code.includes('TIMEOUT') || message.includes('timeout');
 
-        if (!isTimeout) throw error;
+        if (!isTimeout || !fallbackTransporter) throw error;
 
         console.warn(`Primary SMTP failed (${smtpPort}/${smtpSecure ? 'SSL' : 'STARTTLS'}). Retrying with fallback...`);
         return fallbackTransporter.sendMail(options);

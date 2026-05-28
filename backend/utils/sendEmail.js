@@ -15,7 +15,7 @@ const withTimeout = (promise, timeoutMs) => {
 
 const sendEmail = async ({ to, subject, html }) => {
   return withTimeout(transporter.sendMail({
-    from: `"ProjectHub" <${process.env.EMAIL_USER || 'no-reply@projecthub.local'}>`,
+    from: process.env.EMAIL_FROM || `"ProjectHub" <${process.env.EMAIL_USER || 'no-reply@projecthub.local'}>`,
     to,
     subject,
     html,
