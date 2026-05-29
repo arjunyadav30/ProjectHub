@@ -9,6 +9,7 @@ const {
   adminPublishResults,
   getAllHackathons,
   getHackathonById,
+  getMyHackathons,
   studentRegister,
   studentSubmit,
   judgeGetAssigned,
@@ -18,19 +19,20 @@ const {
 } = require('../controllers/hackathonController');
 
 router.get('/', getAllHackathons);
+router.get('/mine', protect, getMyHackathons);
 router.get('/judge/assigned', protect, authorize('faculty'), judgeGetAssigned);
 router.get('/:id', getHackathonById);
 router.get('/:id/judge/submissions', protect, authorize('faculty'), judgeGetSubmissions);
 router.get('/:id/leaderboard', getLeaderboard);
 
-router.post('/', protect, authorize('admin'), adminCreateHackathon);
-router.put('/:id', protect, authorize('admin'), adminUpdateHackathon);
-router.delete('/:id', protect, authorize('admin'), adminDeleteHackathon);
-router.post('/:id/judges', protect, authorize('admin'), adminAssignJudges);
-router.post('/:id/publish-results', protect, authorize('admin'), adminPublishResults);
+router.post('/', protect, adminCreateHackathon);
+router.put('/:id', protect, adminUpdateHackathon);
+router.delete('/:id', protect, adminDeleteHackathon);
+router.post('/:id/judges', protect, adminAssignJudges);
+router.post('/:id/publish-results', protect, adminPublishResults);
 
-router.post('/:id/register', protect, authorize('student'), studentRegister);
-router.post('/:id/submit', protect, authorize('student'), studentSubmit);
+router.post('/:id/register', protect, studentRegister);
+router.post('/:id/submit', protect, studentSubmit);
 
 router.post('/:id/submissions/:submissionId/score', protect, authorize('faculty'), judgeScoreSubmission);
 

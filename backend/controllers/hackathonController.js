@@ -4,24 +4,41 @@ const HackathonScore = require('../models/HackathonScore');
 const Team = require('../models/Team');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
-const Admin = require('../models/Admin');
 const apiResponse = require('../utils/apiResponse');
 
 const scoreTotal = (scores = {}) => ['innovation', 'execution', 'ui_ux', 'impact']
   .reduce((sum, key) => sum + (Number(scores[key]) || 0), 0);
 
+const isOwner = (hackathon, userId) => hackathon.organizer?.toString() === userId.toString();
+
+const ensureOwner = (hackathon, req, res) => {
+  if (!isOwner(hackathon, req.user._id)) {
+    apiResponse.error(res, 'Only hackathon creator can manage this hackathon', 403);
+    return false;
+  }
+  return true;
+};
+
+const userCanUseTeam = async (team, user) => {
+  if (team.created_by?.toString() === user._id.toString()) return true;
+  if (user.role !== 'student') return false;
+  const student = await Student.findOne({ user_id: user._id });
+  if (!student) return false;
+  return team.members.some((m) => m.student_id?.toString() === student._id.toString() && m.status === 'accepted');
+};
+
 const adminCreateHackathon = async (req, res, next) => {
   try {
-    const admin = await Admin.findOne({ user_id: req.user._id, college_id: req.user.college_id });
-    if (!admin) return apiResponse.error(res, 'Admin profile not found', 404);
-
     const data = {
       ...req.body,
       college_id: req.user.college_id,
-      organizer: admin._id,
+      organizer: req.user._id,
+      organizer_role: req.user.role,
       tracks: req.body.tracks || [],
       prizes: req.body.prizes || [],
       faqs: req.body.faqs || [],
+      scope_type: req.body.scope_type || 'inter_college',
+      team_college_rule: req.body.team_college_rule || 'same_college',
     };
 
     const hackathon = await Hackathon.create(data);
@@ -29,15 +46,23 @@ const adminCreateHackathon = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const getMyHackathons = async (req, res, next) => {
+  try {
+    const hackathons = await Hackathon.find({ organizer: req.user._id }).sort({ createdAt: -1 });
+    return apiResponse.success(res, hackathons);
+  } catch (error) { next(error); }
+};
+
 const adminUpdateHackathon = async (req, res, next) => {
   try {
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
+    if (!ensureOwner(hackathon, req, res)) return;
 
     const allowed = [
       'title', 'description', 'banner_image_url', 'registration_start', 'registration_end',
       'submission_deadline', 'max_team_size', 'tracks', 'prizes', 'rules', 'faqs',
-      'status', 'is_results_published',
+      'status', 'is_results_published', 'scope_type', 'team_college_rule',
     ];
 
     allowed.forEach((key) => {
@@ -51,13 +76,14 @@ const adminUpdateHackathon = async (req, res, next) => {
 
 const adminDeleteHackathon = async (req, res, next) => {
   try {
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
+    if (!ensureOwner(hackathon, req, res)) return;
 
     await Promise.all([
       Hackathon.findByIdAndDelete(req.params.id),
-      HackathonSubmission.deleteMany({ hackathon_id: req.params.id, college_id: req.user.college_id }),
-      HackathonScore.deleteMany({ hackathon_id: req.params.id, college_id: req.user.college_id }),
+      HackathonSubmission.deleteMany({ hackathon_id: req.params.id }),
+      HackathonScore.deleteMany({ hackathon_id: req.params.id }),
     ]);
 
     return apiResponse.success(res, null, 'Hackathon deleted');
@@ -67,14 +93,11 @@ const adminDeleteHackathon = async (req, res, next) => {
 const adminAssignJudges = async (req, res, next) => {
   try {
     const { judge_ids = [] } = req.body;
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
+    if (!ensureOwner(hackathon, req, res)) return;
 
-    const validJudges = await Faculty.find({
-      _id: { $in: judge_ids },
-      college_id: req.user.college_id,
-    }).select('_id');
-
+    const validJudges = await Faculty.find({ _id: { $in: judge_ids } }).select('_id');
     hackathon.judges = validJudges.map((j) => j._id);
     await hackathon.save();
 
@@ -84,8 +107,9 @@ const adminAssignJudges = async (req, res, next) => {
 
 const adminPublishResults = async (req, res, next) => {
   try {
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
+    if (!ensureOwner(hackathon, req, res)) return;
 
     hackathon.is_results_published = true;
     if (hackathon.status !== 'ended') hackathon.status = 'ended';
@@ -102,10 +126,7 @@ const getAllHackathons = async (req, res, next) => {
     if (status) filter.status = status;
     if (q) filter.title = { $regex: q, $options: 'i' };
 
-    let query = Hackathon.find(filter)
-      .populate('organizer', 'name email')
-      .sort({ createdAt: -1 });
-
+    let query = Hackathon.find(filter).populate('organizer', 'name email role').sort({ createdAt: -1 });
     if (limit) query = query.limit(parseInt(limit, 10));
     const hackathons = await query;
 
@@ -116,7 +137,7 @@ const getAllHackathons = async (req, res, next) => {
 const getHackathonById = async (req, res, next) => {
   try {
     const hackathon = await Hackathon.findById(req.params.id)
-      .populate('organizer', 'name email')
+      .populate('organizer', 'name email role')
       .populate('judges', 'name email department');
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
 
@@ -127,17 +148,18 @@ const getHackathonById = async (req, res, next) => {
 const studentRegister = async (req, res, next) => {
   try {
     const { team_id } = req.body;
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
 
-    const student = await Student.findOne({ user_id: req.user._id, college_id: req.user.college_id });
-    if (!student) return apiResponse.error(res, 'Student profile not found', 404);
-
-    const team = await Team.findOne({ _id: team_id, college_id: req.user.college_id });
+    const team = await Team.findById(team_id);
     if (!team) return apiResponse.error(res, 'Team not found', 404);
 
-    const isMember = team.members.some((m) => m.student_id.toString() === student._id.toString() && m.status === 'accepted');
-    if (!isMember) return apiResponse.error(res, 'Only team members can register', 403);
+    const canUseTeam = await userCanUseTeam(team, req.user);
+    if (!canUseTeam) return apiResponse.error(res, 'Not authorized to register this team', 403);
+
+    if (hackathon.team_college_rule === 'same_college' && team.college_id?.toString() !== hackathon.college_id?.toString()) {
+      return apiResponse.error(res, 'Only same-college teams are allowed for this hackathon', 400);
+    }
 
     if (team.members.filter((m) => m.status === 'accepted').length > hackathon.max_team_size) {
       return apiResponse.error(res, `Team exceeds max size of ${hackathon.max_team_size}`, 400);
@@ -154,23 +176,20 @@ const studentRegister = async (req, res, next) => {
 
 const studentSubmit = async (req, res, next) => {
   try {
-    const hackathon = await Hackathon.findOne({ _id: req.params.id, college_id: req.user.college_id });
+    const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
 
-    const student = await Student.findOne({ user_id: req.user._id, college_id: req.user.college_id });
-    if (!student) return apiResponse.error(res, 'Student profile not found', 404);
-
-    const team = await Team.findOne({ _id: req.body.team_id, college_id: req.user.college_id });
+    const team = await Team.findById(req.body.team_id);
     if (!team) return apiResponse.error(res, 'Team not found', 404);
 
-    const isMember = team.members.some((m) => m.student_id.toString() === student._id.toString() && m.status === 'accepted');
-    if (!isMember) return apiResponse.error(res, 'Only team members can submit', 403);
+    const canUseTeam = await userCanUseTeam(team, req.user);
+    if (!canUseTeam) return apiResponse.error(res, 'Not authorized to submit for this team', 403);
 
     const isRegistered = hackathon.registered_teams.some((id) => id.toString() === team._id.toString());
     if (!isRegistered) return apiResponse.error(res, 'Team is not registered for this hackathon', 400);
 
     const payload = {
-      college_id: req.user.college_id,
+      college_id: team.college_id,
       hackathon_id: hackathon._id,
       team_id: team._id,
       project_title: req.body.project_title,
@@ -194,34 +213,23 @@ const studentSubmit = async (req, res, next) => {
 
 const judgeGetAssigned = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findOne({ user_id: req.user._id, college_id: req.user.college_id });
+    const faculty = await Faculty.findOne({ user_id: req.user._id });
     if (!faculty) return apiResponse.error(res, 'Faculty profile not found', 404);
 
-    const hackathons = await Hackathon.find({
-      college_id: req.user.college_id,
-      judges: faculty._id,
-    }).sort({ createdAt: -1 });
-
+    const hackathons = await Hackathon.find({ judges: faculty._id }).sort({ createdAt: -1 });
     return apiResponse.success(res, hackathons);
   } catch (error) { next(error); }
 };
 
 const judgeGetSubmissions = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findOne({ user_id: req.user._id, college_id: req.user.college_id });
+    const faculty = await Faculty.findOne({ user_id: req.user._id });
     if (!faculty) return apiResponse.error(res, 'Faculty profile not found', 404);
 
-    const hackathon = await Hackathon.findOne({
-      _id: req.params.id,
-      college_id: req.user.college_id,
-      judges: faculty._id,
-    });
+    const hackathon = await Hackathon.findOne({ _id: req.params.id, judges: faculty._id });
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found or not assigned', 404);
 
-    const submissions = await HackathonSubmission.find({
-      hackathon_id: hackathon._id,
-      college_id: req.user.college_id,
-    })
+    const submissions = await HackathonSubmission.find({ hackathon_id: hackathon._id })
       .populate('team_id', 'team_name members')
       .sort({ submitted_at: -1 });
 
@@ -231,48 +239,32 @@ const judgeGetSubmissions = async (req, res, next) => {
 
 const judgeScoreSubmission = async (req, res, next) => {
   try {
-    const faculty = await Faculty.findOne({ user_id: req.user._id, college_id: req.user.college_id });
+    const faculty = await Faculty.findOne({ user_id: req.user._id });
     if (!faculty) return apiResponse.error(res, 'Faculty profile not found', 404);
 
-    const hackathon = await Hackathon.findOne({
-      _id: req.params.id,
-      college_id: req.user.college_id,
-      judges: faculty._id,
-    });
+    const hackathon = await Hackathon.findOne({ _id: req.params.id, judges: faculty._id });
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found or not assigned', 404);
     if (hackathon.is_results_published) return apiResponse.error(res, 'Scoring is closed after publishing results', 400);
 
-    const submission = await HackathonSubmission.findOne({
-      _id: req.params.submissionId,
-      hackathon_id: hackathon._id,
-      college_id: req.user.college_id,
-    });
+    const submission = await HackathonSubmission.findOne({ _id: req.params.submissionId, hackathon_id: hackathon._id });
     if (!submission) return apiResponse.error(res, 'Submission not found', 404);
 
     const scores = req.body.scores || {};
     const fields = ['innovation', 'execution', 'ui_ux', 'impact'];
     for (const field of fields) {
       const value = Number(scores[field]);
-      if (Number.isNaN(value) || value < 0 || value > 10) {
-        return apiResponse.error(res, `Invalid ${field} score. Must be between 0 and 10`, 400);
-      }
+      if (Number.isNaN(value) || value < 0 || value > 10) return apiResponse.error(res, `Invalid ${field} score. Must be between 0 and 10`, 400);
     }
 
-    const total = scoreTotal(scores);
-
     const scoreDoc = await HackathonScore.findOneAndUpdate(
+      { hackathon_id: hackathon._id, submission_id: submission._id, judge_id: faculty._id },
       {
-        hackathon_id: hackathon._id,
-        submission_id: submission._id,
-        judge_id: faculty._id,
-      },
-      {
-        college_id: req.user.college_id,
+        college_id: submission.college_id,
         hackathon_id: hackathon._id,
         submission_id: submission._id,
         judge_id: faculty._id,
         scores,
-        total,
+        total: scoreTotal(scores),
         comment: req.body.comment || '',
       },
       { new: true, upsert: true, setDefaultsOnInsert: true },
@@ -290,19 +282,12 @@ const getLeaderboard = async (req, res, next) => {
 
     const rows = await HackathonScore.aggregate([
       { $match: { hackathon_id: hackathon._id } },
-      {
-        $group: {
-          _id: '$submission_id',
-          averageScore: { $avg: '$total' },
-          judgesCount: { $sum: 1 },
-        },
-      },
+      { $group: { _id: '$submission_id', averageScore: { $avg: '$total' }, judgesCount: { $sum: 1 } } },
       { $sort: { averageScore: -1 } },
     ]);
 
     const submissionIds = rows.map((r) => r._id);
-    const submissions = await HackathonSubmission.find({ _id: { $in: submissionIds } })
-      .populate('team_id', 'team_name');
+    const submissions = await HackathonSubmission.find({ _id: { $in: submissionIds } }).populate('team_id', 'team_name');
     const subMap = new Map(submissions.map((s) => [s._id.toString(), s]));
 
     const leaderboard = rows.map((row, idx) => {
@@ -329,6 +314,7 @@ module.exports = {
   adminPublishResults,
   getAllHackathons,
   getHackathonById,
+  getMyHackathons,
   studentRegister,
   studentSubmit,
   judgeGetAssigned,

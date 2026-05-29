@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Calendar, Users, Bell, User, LogOut,
   FolderOpen, Moon, Sun, Menu, X, GraduationCap, Globe,
   MessageSquare, BookOpen, Search, Mic, FileEdit,
-  Trophy, Gavel,
+  Trophy,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn, timeAgo } from '../../utils';
@@ -15,7 +15,7 @@ const studentLinks = [
   { to: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/student/events', icon: Calendar, label: 'Events' },
   { to: '/student/projects', icon: FolderOpen, label: 'My Projects' },
-  { to: '/student/hackathons', icon: Trophy, label: 'Hackathons' },
+  { to: '/hackathons/dashboard', icon: Trophy, label: 'Hackathons' },
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/student/viva', icon: Mic, label: 'AI Viva' },
   { to: '/student/report-template-lock', icon: FileEdit, label: 'Report (Same Format)' },
@@ -28,7 +28,7 @@ const facultyLinks = [
   { to: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/faculty/teams', icon: Users, label: 'My Teams' },
   { to: '/faculty/events', icon: Calendar, label: 'Events' },
-  { to: '/faculty/hackathons/judge', icon: Gavel, label: 'Judge Panel' },
+  { to: '/hackathons/dashboard', icon: Trophy, label: 'Hackathons' },
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/people', icon: Search, label: 'People' },
   { to: '/notifications', icon: Bell, label: 'Notifications', badge: true },
@@ -40,7 +40,7 @@ const adminLinks = [
   { to: '/admin/students', icon: Users, label: 'Students' },
   { to: '/admin/faculty', icon: BookOpen, label: 'Faculty' },
   { to: '/admin/events', icon: Calendar, label: 'Events' },
-  { to: '/admin/hackathons', icon: Trophy, label: 'Hackathons' },
+  { to: '/hackathons/dashboard', icon: Trophy, label: 'Hackathons' },
   { to: '/admin/website', icon: Globe, label: 'Website' },
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/people', icon: Search, label: 'People' },

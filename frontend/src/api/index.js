@@ -185,6 +185,7 @@ export const publicAPI = {
 
 export const hackathonAPI = {
   getAll: (params) => api.get('/hackathons', { params }),
+  getMine: () => api.get('/hackathons/mine'),
   getById: (id) => api.get(`/hackathons/${id}`),
   create: (data) => api.post('/hackathons', data),
   update: (id, data) => api.put(`/hackathons/${id}`, data),
