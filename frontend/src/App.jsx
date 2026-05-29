@@ -129,6 +129,7 @@ function App() {
         {/* ── Public ── */}
         <Route path="/" element={<HubSelectorPage />} />
         <Route path="/projecthub" element={<HomePage />} />
+        <Route path="/hackathonhub" element={<HackathonListingPage />} />
         <Route path="/hackathons" element={<HackathonListingPage />} />
         <Route path="/hackathons/create" element={<HackathonCreatePage />} />
         <Route path="/hackathons/:id" element={<HackathonDetailPage />} />

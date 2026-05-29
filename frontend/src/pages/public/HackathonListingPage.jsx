@@ -32,9 +32,11 @@ const HackathonListingPage = () => {
             <h1 className="text-4xl font-bold">Hackathons</h1>
             <p className="text-gray-400 mt-2">Find upcoming and ongoing competitions</p>
           </div>
-          <div className="flex gap-2">
-            <Link to="/hackathons/create" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold w-fit">Create Hackathon</Link>
-            <Link to="/" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 w-fit">Back Home</Link>
+          <div className="flex gap-2 flex-wrap">
+            <Link to="/hackathonhub/login" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold w-fit">Login</Link>
+            <Link to="/hackathonhub/signup" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 w-fit">Signup</Link>
+            <Link to="/hackathons/create" className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold w-fit">Create Hackathon</Link>
+            <Link to="/" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 w-fit">Back</Link>
           </div>
         </div>
 
@@ -46,7 +48,7 @@ const HackathonListingPage = () => {
           <div className="flex gap-2 flex-wrap">
             {statuses.map((s) => (
               <button key={s} onClick={() => setStatus(s)} className={`px-4 py-2 rounded-xl text-sm font-semibold ${status === s ? 'bg-blue-600' : 'bg-gray-800 border border-gray-700'}`}>
-                {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                {s === 'all' ? 'All' : s === 'ongoing' ? 'Live' : s.charAt(0).toUpperCase() + s.slice(1)}
               </button>
             ))}
           </div>
