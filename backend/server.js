@@ -211,6 +211,15 @@ app.use('/api/hackathons', hackathonRoutes);
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'ProjectHub API running', timestamp: new Date() }));
 
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    return res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+}
+
 // 404
 app.use('*', (req, res) => res.status(404).json({ success: false, message: 'Route not found' }));
 
