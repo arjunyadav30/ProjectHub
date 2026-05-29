@@ -21,13 +21,15 @@ const getCollegeSummary = async (collegeId) => {
 };
 const PROJECTHUB_ROLES = ['student', 'faculty', 'admin'];
 const HACKATHON_ROLES = ['hackathon_admin', 'hackathon_user'];
+const scopeFromRole = (role) => (PROJECTHUB_ROLES.includes(role) ? 'projecthub' : 'hackathonhub');
 
 // POST /api/auth/signup
 const signup = async (req, res, next) => {
   try {
     const { name, email, password, role, phone, enrollment_no, branch, faculty_id, department, college_name, college_code } = req.body;
+    const authScope = scopeFromRole(role || 'student');
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email, auth_scope: authScope });
     if (existingUser) return apiResponse.error(res, 'Email already registered', 409);
 
     let collegeId = null;
@@ -53,6 +55,7 @@ const signup = async (req, res, next) => {
       name, email, password_hash: password, role: role || 'student',
       phone: phone || '',
       college_id: collegeId,
+      auth_scope: authScope,
     });
 
     if (role === 'student') {
@@ -105,7 +108,7 @@ const signupForRoles = (allowedRoles) => async (req, res, next) => {
 // POST /api/auth/login
 const login = async (req, res, next) => {
   try {
-    const { email, enrollment_no, password } = req.body;
+    const { email, enrollment_no, password, auth_scope } = req.body;
 
     let user;
     if (enrollment_no) {
@@ -114,7 +117,9 @@ const login = async (req, res, next) => {
       if (!student) return apiResponse.error(res, 'Invalid credentials', 401);
       user = await User.findById(student.user_id);
     } else {
-      user = await User.findOne({ email });
+      const loginFilter = { email };
+      if (auth_scope) loginFilter.auth_scope = auth_scope;
+      user = await User.findOne(loginFilter);
     }
 
     if (!user) return apiResponse.error(res, 'Invalid credentials', 401);
@@ -152,16 +157,20 @@ const login = async (req, res, next) => {
 const loginForRoles = (allowedRoles) => async (req, res, next) => {
   try {
     const { email, enrollment_no, password } = req.body;
+    const expectedScope = allowedRoles.includes('hackathon_admin') || allowedRoles.includes('hackathon_user')
+      ? 'hackathonhub'
+      : 'projecthub';
     let user;
     if (enrollment_no) {
       const student = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase() });
       if (!student) return apiResponse.error(res, 'Invalid credentials', 401);
       user = await User.findById(student.user_id);
     } else {
-      user = await User.findOne({ email });
+      user = await User.findOne({ email, auth_scope: expectedScope });
     }
     if (!user) return apiResponse.error(res, 'Invalid credentials', 401);
     if (!allowedRoles.includes(user.role)) return apiResponse.error(res, 'Invalid portal for this account', 403);
+    req.body.auth_scope = expectedScope;
     return login(req, res, next);
   } catch (error) { next(error); }
 };

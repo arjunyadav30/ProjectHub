@@ -4,7 +4,8 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: false, default: null, index: true },
   name: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  email: { type: String, required: true, lowercase: true, trim: true },
+  auth_scope: { type: String, enum: ['projecthub', 'hackathonhub'], required: true, index: true },
   password_hash: { type: String, required: true },
   role: { type: String, enum: ['student', 'faculty', 'admin', 'hackathon_admin', 'hackathon_user'], required: true },
   phone: { type: String, default: '' },
@@ -23,6 +24,8 @@ const userSchema = new mongoose.Schema({
   refresh_token: { type: String },
   last_login: { type: Date },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
+
+userSchema.index({ email: 1, auth_scope: 1 }, { unique: true });
 
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password_hash')) return next();
