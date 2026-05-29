@@ -77,6 +77,12 @@ const HomePage = () => {
             >
               View Projects
             </a>
+            <Link
+              to="/hackathons/create"
+              className="px-8 py-4 bg-blue-700 hover:bg-blue-600 text-white font-semibold rounded-xl text-lg transition-all shadow-lg hover:shadow-blue-500/30 hover:scale-105"
+            >
+              Create Hackathon
+            </Link>
           </div>
         </div>
 
