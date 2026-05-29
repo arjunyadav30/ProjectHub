@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useForm } from 'react-hook-form';
@@ -72,17 +72,25 @@ const SignupPage = () => {
     resolver: zodResolver(schema),
   });
 
+  useEffect(() => {
+    setRole(isHackathonPortal ? 'hackathon_user' : 'student');
+    reset();
+  }, [isHackathonPortal, reset]);
+
   const handleRoleChange = (newRole) => { setRole(newRole); reset(); };
 
   const onSubmit = async (data) => {
     try {
-      const result = await signup({ ...data, role }, isHackathonPortal ? 'hackathonhub' : 'projecthub');
+      const safeRole = isHackathonPortal
+        ? (['hackathon_admin', 'hackathon_user'].includes(role) ? role : 'hackathon_user')
+        : (['student', 'faculty', 'admin'].includes(role) ? role : 'student');
+      const result = await signup({ ...data, role: safeRole }, isHackathonPortal ? 'hackathonhub' : 'projecthub');
       toast.success(`Welcome, ${result.user.name.split(' ')[0]}!`);
       // Redirect based on role
-      if (role === 'admin') navigate('/admin/dashboard');
-      else if (role === 'faculty') navigate('/faculty/dashboard');
-      else if (role === 'hackathon_admin') navigate('/hackathonhub/dashboard');
-      else if (role === 'hackathon_user') navigate('/hackathonhub');
+      if (safeRole === 'admin') navigate('/admin/dashboard');
+      else if (safeRole === 'faculty') navigate('/faculty/dashboard');
+      else if (safeRole === 'hackathon_admin') navigate('/hackathonhub/dashboard');
+      else if (safeRole === 'hackathon_user') navigate('/hackathonhub');
       else navigate('/setup/change-password'); // student 2-step
     } catch (error) {
       toast.error(getErrorMessage(error));
