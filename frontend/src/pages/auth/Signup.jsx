@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -56,7 +56,9 @@ const ROLES = [
 const SignupPage = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
-  const [role, setRole] = useState('student');
+  const location = useLocation();
+  const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
+  const [role, setRole] = useState(isHackathonPortal ? 'hackathon_user' : 'student');
 
   const schema = role === 'student'
     ? studentSchema
@@ -74,7 +76,7 @@ const SignupPage = () => {
 
   const onSubmit = async (data) => {
     try {
-      const result = await signup({ ...data, role });
+      const result = await signup({ ...data, role }, isHackathonPortal ? 'hackathonhub' : 'projecthub');
       toast.success(`Welcome, ${result.user.name.split(' ')[0]}!`);
       // Redirect based on role
       if (role === 'admin') navigate('/admin/dashboard');
@@ -99,9 +101,11 @@ const SignupPage = () => {
         </div>
 
         <div className="card p-8">
-          {/* Role Toggle */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-            {ROLES.map(({ value, label, icon: Icon }) => (
+            {(isHackathonPortal
+              ? ROLES.filter(r => ['hackathon_admin', 'hackathon_user'].includes(r.value))
+              : ROLES.filter(r => ['student', 'faculty', 'admin'].includes(r.value))
+            ).map(({ value, label, icon: Icon }) => (
               <button key={value} type="button" onClick={() => handleRoleChange(value)}
                 className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
                   role === value
@@ -151,7 +155,7 @@ const SignupPage = () => {
 
           <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
+            <Link to={isHackathonPortal ? '/hackathonhub/login' : '/projecthub/login'} className="text-blue-600 font-medium hover:underline">Sign in</Link>
           </p>
         </div>
       </div>

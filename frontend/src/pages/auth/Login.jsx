@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { Button, Input } from '../../components/common';
@@ -9,6 +9,8 @@ import { getErrorMessage } from '../../utils';
 const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
   const [loginType, setLoginType] = useState('email'); // 'email' | 'enrollment'
   const [form, setForm] = useState({ email: '', enrollment_no: '', password: '' });
   const [showPass, setShowPass] = useState(false);
@@ -28,7 +30,7 @@ const LoginPage = () => {
         ? { enrollment_no: form.enrollment_no, password: form.password }
         : { email: form.email, password: form.password };
 
-      const result = await login(payload);
+      const result = await login(payload, isHackathonPortal ? 'hackathonhub' : 'projecthub');
       toast.success(`Welcome back, ${result.user.name.split(' ')[0]}!`);
 
       // Role-based redirect
@@ -71,7 +73,7 @@ const LoginPage = () => {
         </div>
 
         <div className="card p-8">
-          {/* Login type toggle (for students) */}
+          {!isHackathonPortal && (
           <div className="flex gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
             {[
               { id: 'email', label: 'Email' },
@@ -87,9 +89,10 @@ const LoginPage = () => {
               </button>
             ))}
           </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {loginType === 'email' ? (
+            {isHackathonPortal || loginType === 'email' ? (
               <Input label="Email" type="email" placeholder="you@college.edu"
                 value={form.email} onChange={e => setField('email', e.target.value)} required />
             ) : (
@@ -115,7 +118,7 @@ const LoginPage = () => {
 
           <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-blue-600 font-medium hover:underline">Create one</Link>
+            <Link to={isHackathonPortal ? '/hackathonhub/signup' : '/projecthub/signup'} className="text-blue-600 font-medium hover:underline">Create one</Link>
           </p>
         </div>
       </div>

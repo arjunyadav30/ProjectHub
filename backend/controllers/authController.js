@@ -19,6 +19,8 @@ const getCollegeSummary = async (collegeId) => {
   if (!collegeId) return null;
   return College.findById(collegeId).select('name code logo');
 };
+const PROJECTHUB_ROLES = ['student', 'faculty', 'admin'];
+const HACKATHON_ROLES = ['hackathon_admin', 'hackathon_user'];
 
 // POST /api/auth/signup
 const signup = async (req, res, next) => {
@@ -93,6 +95,13 @@ const signup = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const signupForRoles = (allowedRoles) => async (req, res, next) => {
+  if (!allowedRoles.includes(req.body.role)) {
+    return apiResponse.error(res, `Allowed roles: ${allowedRoles.join(', ')}`, 403);
+  }
+  return signup(req, res, next);
+};
+
 // POST /api/auth/login
 const login = async (req, res, next) => {
   try {
@@ -137,6 +146,23 @@ const login = async (req, res, next) => {
     const college = await getCollegeSummary(user.college_id);
 
     return apiResponse.success(res, { user: user.toSafeObject(), profile, college, accessToken, needs_verification }, 'Login successful');
+  } catch (error) { next(error); }
+};
+
+const loginForRoles = (allowedRoles) => async (req, res, next) => {
+  try {
+    const { email, enrollment_no, password } = req.body;
+    let user;
+    if (enrollment_no) {
+      const student = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase() });
+      if (!student) return apiResponse.error(res, 'Invalid credentials', 401);
+      user = await User.findById(student.user_id);
+    } else {
+      user = await User.findOne({ email });
+    }
+    if (!user) return apiResponse.error(res, 'Invalid credentials', 401);
+    if (!allowedRoles.includes(user.role)) return apiResponse.error(res, 'Invalid portal for this account', 403);
+    return login(req, res, next);
   } catch (error) { next(error); }
 };
 
@@ -250,4 +276,17 @@ const resetPassword = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-module.exports = { signup, login, logout, refreshToken, forgotPassword, resetPassword, changePassword, completeProfile };
+module.exports = {
+  signup,
+  login,
+  signupProjectHub: signupForRoles(PROJECTHUB_ROLES),
+  signupHackathonHub: signupForRoles(HACKATHON_ROLES),
+  loginProjectHub: loginForRoles(PROJECTHUB_ROLES),
+  loginHackathonHub: loginForRoles(HACKATHON_ROLES),
+  logout,
+  refreshToken,
+  forgotPassword,
+  resetPassword,
+  changePassword,
+  completeProfile,
+};

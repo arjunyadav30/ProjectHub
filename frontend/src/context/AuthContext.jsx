@@ -55,8 +55,13 @@ export const AuthProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [loading]);
 
-  const login = async (credentials) => {
-    const { data } = await authAPI.login(credentials);
+  const login = async (credentials, portal = 'default') => {
+    const req = portal === 'projecthub'
+      ? authAPI.loginProjectHub(credentials)
+      : portal === 'hackathonhub'
+        ? authAPI.loginHackathonHub(credentials)
+        : authAPI.login(credentials);
+    const { data } = await req;
     localStorage.setItem('accessToken', data.data.accessToken);
     setUser(data.data.user);
     setProfile(data.data.profile);
@@ -64,8 +69,13 @@ export const AuthProvider = ({ children }) => {
     return data.data;
   };
 
-  const signup = async (formData) => {
-    const { data } = await authAPI.signup(formData);
+  const signup = async (formData, portal = 'default') => {
+    const req = portal === 'projecthub'
+      ? authAPI.signupProjectHub(formData)
+      : portal === 'hackathonhub'
+        ? authAPI.signupHackathonHub(formData)
+        : authAPI.signup(formData);
+    const { data } = await req;
     localStorage.setItem('accessToken', data.data.accessToken);
     setUser(data.data.user);
     setProfile(data.data.profile);

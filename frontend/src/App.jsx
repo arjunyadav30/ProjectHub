@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 
 // Public
 import HomePage from './pages/public/HomePage';
+import HubSelectorPage from './pages/public/HubSelectorPage';
 import HackathonListingPage from './pages/public/HackathonListingPage';
 import HackathonDetailPage from './pages/public/HackathonDetailPage';
 import HackathonCreatePage from './pages/public/HackathonCreatePage';
@@ -126,13 +127,18 @@ function App() {
         <Route path="/report-preview" element={<ReportPreview />} />
 
         {/* ── Public ── */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<HubSelectorPage />} />
+        <Route path="/projecthub" element={<HomePage />} />
         <Route path="/hackathons" element={<HackathonListingPage />} />
         <Route path="/hackathons/create" element={<HackathonCreatePage />} />
         <Route path="/hackathons/:id" element={<HackathonDetailPage />} />
         <Route path="/hackathons/dashboard" element={<ProtectedRoute roles={['hackathon_admin']}><HackathonDashboard /></ProtectedRoute>} />
-        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path="/projecthub/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/projecthub/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path="/hackathonhub/login" element={<PublicRoute><Login /></PublicRoute>} />
+        <Route path="/hackathonhub/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+        <Route path="/login" element={<Navigate to="/projecthub/login" replace />} />
+        <Route path="/signup" element={<Navigate to="/projecthub/signup" replace />} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
 

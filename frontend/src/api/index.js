@@ -62,6 +62,10 @@ api.interceptors.response.use(
 export const authAPI = {
   signup: (data) => api.post('/auth/signup', data),
   login: (data) => api.post('/auth/login', data),
+  signupProjectHub: (data) => api.post('/auth/projecthub/signup', data),
+  signupHackathonHub: (data) => api.post('/auth/hackathonhub/signup', data),
+  loginProjectHub: (data) => api.post('/auth/projecthub/login', data),
+  loginHackathonHub: (data) => api.post('/auth/hackathonhub/login', data),
   logout: () => api.post('/auth/logout'),
   changePassword: (data) => api.post('/auth/change-password', data),
   completeProfile: (data) => api.post('/auth/complete-profile', data),
