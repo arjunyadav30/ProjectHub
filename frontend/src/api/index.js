@@ -183,6 +183,22 @@ export const publicAPI = {
   getFeaturedProjects: () => api.get('/public/featured-projects'),
 };
 
+export const hackathonAPI = {
+  getAll: (params) => api.get('/hackathons', { params }),
+  getById: (id) => api.get(`/hackathons/${id}`),
+  create: (data) => api.post('/hackathons', data),
+  update: (id, data) => api.put(`/hackathons/${id}`, data),
+  delete: (id) => api.delete(`/hackathons/${id}`),
+  assignJudges: (id, data) => api.post(`/hackathons/${id}/judges`, data),
+  publishResults: (id) => api.post(`/hackathons/${id}/publish-results`),
+  register: (id, data) => api.post(`/hackathons/${id}/register`, data),
+  submit: (id, data) => api.post(`/hackathons/${id}/submit`, data),
+  getJudgeAssigned: () => api.get('/hackathons/judge/assigned'),
+  getJudgeSubmissions: (id) => api.get(`/hackathons/${id}/judge/submissions`),
+  scoreSubmission: (id, subId, data) => api.post(`/hackathons/${id}/submissions/${subId}/score`, data),
+  getLeaderboard: (id) => api.get(`/hackathons/${id}/leaderboard`),
+};
+
 export const projectAPI = {
   globalSearch: (q) => api.get('/projects/search/global', { params: { q } }),
   getBoard: (teamId) => api.get(`/projects/teams/${teamId}/board`),

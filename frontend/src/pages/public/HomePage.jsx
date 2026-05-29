@@ -1,19 +1,25 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { publicAPI } from '../../api';
-import { GraduationCap, ExternalLink, Users, BookOpen, Github } from 'lucide-react';
+import { hackathonAPI, publicAPI } from '../../api';
+import { GraduationCap, ExternalLink, Users, BookOpen, Github, Trophy, Clock, Tag } from 'lucide-react';
 
 const HomePage = () => {
   const [config, setConfig] = useState({ site_name: 'ProjectHub', logo_url: '', hero_image_url: '' });
   const [featuredProjects, setFeaturedProjects] = useState([]);
+  const [upcomingHackathons, setUpcomingHackathons] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([publicAPI.getWebsiteConfig(), publicAPI.getFeaturedProjects()])
-      .then(([cfgRes, projRes]) => {
+    Promise.all([
+      publicAPI.getWebsiteConfig(),
+      publicAPI.getFeaturedProjects(),
+      hackathonAPI.getAll({ status: 'upcoming', limit: 3 }),
+    ])
+      .then(([cfgRes, projRes, hackRes]) => {
         setConfig(cfgRes.data.data || {});
         setFeaturedProjects(projRes.data.data || []);
+        setUpcomingHackathons(hackRes.data.data || []);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -143,6 +149,52 @@ const HomePage = () => {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="py-20 px-4 bg-gray-950">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-10">
+            <div>
+              <h2 className="text-3xl font-bold text-white">Upcoming Hackathons</h2>
+              <p className="text-gray-400 mt-2">Compete, build, and win exciting prizes</p>
+            </div>
+            <Link to="/hackathons" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">
+              View All
+            </Link>
+          </div>
+          {upcomingHackathons.length === 0 ? (
+            <div className="text-gray-400 bg-gray-900 border border-gray-700 rounded-2xl p-6">No upcoming hackathons announced yet.</div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingHackathons.map((hack) => {
+                const prizePool = (hack.prizes || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+                return (
+                  <div key={hack._id} className="bg-gray-900 text-white rounded-2xl border border-gray-700 hover:border-blue-500/50 p-6 transition-colors">
+                    {hack.banner_image_url && (
+                      <img src={hack.banner_image_url} alt={hack.title} className="h-40 w-full rounded-xl object-cover mb-4" />
+                    )}
+                    <h3 className="text-xl font-bold mb-3">{hack.title}</h3>
+                    <div className="space-y-2 text-sm text-gray-300 mb-4">
+                      <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-blue-400" /> Reg closes: {new Date(hack.registration_end).toLocaleDateString()}</p>
+                      <p className="flex items-center gap-2"><Trophy className="w-4 h-4 text-yellow-400" /> Prize Pool: ₹{prizePool.toLocaleString()}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {(hack.tracks || []).slice(0, 3).map((track) => (
+                        <span key={track} className="px-2 py-1 rounded-full bg-gray-800 border border-gray-700 text-xs flex items-center gap-1">
+                          <Tag className="w-3 h-3" /> {track}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Link to={`/hackathons/${hack._id}`} className="flex-1 px-4 py-2 rounded-xl border border-gray-700 text-center hover:border-blue-500">Details</Link>
+                      <Link to="/login" className="flex-1 px-4 py-2 rounded-xl bg-blue-600 text-center font-semibold hover:bg-blue-500">Register</Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

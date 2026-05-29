@@ -4,6 +4,8 @@ import { Toaster } from 'react-hot-toast';
 
 // Public
 import HomePage from './pages/public/HomePage';
+import HackathonListingPage from './pages/public/HackathonListingPage';
+import HackathonDetailPage from './pages/public/HackathonDetailPage';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -21,6 +23,7 @@ import AdminEvents from './pages/admin/Events';
 import AdminEventDetail from './pages/admin/EventDetail';
 import AdminWebsite from './pages/admin/Website';
 import AdminSubscription from './pages/admin/Subscription';
+import AdminHackathons from './pages/admin/Hackathons';
 
 // Faculty
 import FacultyDashboard from './pages/faculty/Dashboard';
@@ -28,6 +31,7 @@ import FacultyTeams from './pages/faculty/Teams';
 import FacultyTeamDetail from './pages/faculty/TeamDetail';
 import FacultyEvents from './pages/faculty/Events';
 import FacultyEventDetail from './pages/faculty/EventDetail';
+import FacultyHackathonJudge from './pages/faculty/HackathonJudge';
 
 // Student
 import StudentDashboard from './pages/student/Dashboard';
@@ -39,6 +43,7 @@ import StudentTemplateLockReport from './pages/student/TemplateLockReport';
 import EventDetailPage from './pages/student/EventDetail';
 import TeamDetail from './pages/student/TeamDetail';
 import ReportPreview from './pages/student/ReportPreview';
+import StudentHackathons from './pages/student/Hackathons';
 
 // Chat
 import ChatPage from './pages/chat/ChatPage';
@@ -119,6 +124,8 @@ function App() {
 
         {/* ── Public ── */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/hackathons" element={<HackathonListingPage />} />
+        <Route path="/hackathons/:id" element={<HackathonDetailPage />} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
@@ -135,6 +142,7 @@ function App() {
         <Route path="/admin/events"       element={<ProtectedRoute roles={['admin']}><AdminEvents /></ProtectedRoute>} />
         <Route path="/admin/events/:id"   element={<ProtectedRoute roles={['admin']}><AdminEventDetail /></ProtectedRoute>} />
         <Route path="/admin/website"      element={<ProtectedRoute roles={['admin']}><AdminWebsite /></ProtectedRoute>} />
+        <Route path="/admin/hackathons"   element={<ProtectedRoute roles={['admin']}><AdminHackathons /></ProtectedRoute>} />
         <Route path="/subscription"       element={<ProtectedRoute roles={['admin']}><AdminSubscription /></ProtectedRoute>} />
 
         {/* ── Faculty ── */}
@@ -143,12 +151,14 @@ function App() {
         <Route path="/faculty/teams/:id"      element={<ProtectedRoute roles={['faculty']}><FacultyTeamDetail /></ProtectedRoute>} />
         <Route path="/faculty/events"         element={<ProtectedRoute roles={['faculty']}><FacultyEvents /></ProtectedRoute>} />
         <Route path="/faculty/events/:id"     element={<ProtectedRoute roles={['faculty']}><FacultyEventDetail /></ProtectedRoute>} />
+        <Route path="/faculty/hackathons/judge" element={<ProtectedRoute roles={['faculty']}><FacultyHackathonJudge /></ProtectedRoute>} />
 
         {/* ── Student ── */}
         <Route path="/student/dashboard"  element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
         <Route path="/student/profile"    element={<ProtectedRoute roles={['student']}><StudentProfile /></ProtectedRoute>} />
         <Route path="/student/events"     element={<ProtectedRoute roles={['student']}><StudentEvents /></ProtectedRoute>} />
         <Route path="/student/projects"   element={<ProtectedRoute roles={['student']}><StudentProjects /></ProtectedRoute>} />
+        <Route path="/student/hackathons" element={<ProtectedRoute roles={['student']}><StudentHackathons /></ProtectedRoute>} />
         <Route path="/student/viva"       element={<ProtectedRoute roles={['student']}><StudentViva /></ProtectedRoute>} />
         <Route path="/student/report-template-lock" element={<ProtectedRoute roles={['student']}><StudentTemplateLockReport /></ProtectedRoute>} />
 
