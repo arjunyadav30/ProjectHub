@@ -161,9 +161,14 @@ const HomePage = () => {
               <h2 className="text-3xl font-bold text-white">Upcoming Hackathons</h2>
               <p className="text-gray-400 mt-2">Compete, build, and win exciting prizes</p>
             </div>
-            <Link to="/hackathons" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">
-              View All
-            </Link>
+            <div className="flex gap-2">
+              <Link to="/hackathons/create" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 font-semibold">
+                Create
+              </Link>
+              <Link to="/hackathons" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">
+                View All
+              </Link>
+            </div>
           </div>
           {upcomingHackathons.length === 0 ? (
             <div className="text-gray-400 bg-gray-900 border border-gray-700 rounded-2xl p-6">No upcoming hackathons announced yet.</div>

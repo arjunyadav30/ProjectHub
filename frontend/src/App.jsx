@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import HomePage from './pages/public/HomePage';
 import HackathonListingPage from './pages/public/HackathonListingPage';
 import HackathonDetailPage from './pages/public/HackathonDetailPage';
+import HackathonCreatePage from './pages/public/HackathonCreatePage';
 import HackathonDashboard from './pages/HackathonDashboard';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
@@ -123,6 +124,7 @@ function App() {
         {/* ── Public ── */}
         <Route path="/" element={<HomePage />} />
         <Route path="/hackathons" element={<HackathonListingPage />} />
+        <Route path="/hackathons/create" element={<HackathonCreatePage />} />
         <Route path="/hackathons/:id" element={<HackathonDetailPage />} />
         <Route path="/hackathons/dashboard" element={<ProtectedRoute><HackathonDashboard /></ProtectedRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
