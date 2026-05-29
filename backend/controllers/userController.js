@@ -2,8 +2,14 @@ const User = require('../models/User');
 const Student = require('../models/Student');
 const Faculty = require('../models/Faculty');
 const Admin = require('../models/Admin');
+const College = require('../models/College');
 const apiResponse = require('../utils/apiResponse');
 const { upload, uploadToCloudinary } = require('../config/cloudinary');
+
+const getCollegeSummary = async (collegeId) => {
+  if (!collegeId) return null;
+  return College.findById(collegeId).select('name code logo');
+};
 
 // GET /api/users/me
 const getMe = async (req, res, next) => {
@@ -16,7 +22,9 @@ const getMe = async (req, res, next) => {
     else if (user.role === 'faculty') profile = await Faculty.findOne({ user_id: user._id });
     else if (user.role === 'admin') profile = await Admin.findOne({ user_id: user._id });
 
-    return apiResponse.success(res, { user: user.toSafeObject(), profile });
+    const college = await getCollegeSummary(user.college_id);
+
+    return apiResponse.success(res, { user: user.toSafeObject(), profile, college });
   } catch (error) { next(error); }
 };
 
@@ -51,7 +59,9 @@ const updateMe = async (req, res, next) => {
       );
     }
 
-    return apiResponse.success(res, { user: user.toSafeObject(), profile }, 'Profile updated');
+    const college = await getCollegeSummary(user.college_id);
+
+    return apiResponse.success(res, { user: user.toSafeObject(), profile, college }, 'Profile updated');
   } catch (error) { next(error); }
 };
 

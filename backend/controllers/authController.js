@@ -15,6 +15,11 @@ const {
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../utils/sendEmail');
 const jwt = require('jsonwebtoken');
 
+const getCollegeSummary = async (collegeId) => {
+  if (!collegeId) return null;
+  return College.findById(collegeId).select('name code logo');
+};
+
 // POST /api/auth/signup
 const signup = async (req, res, next) => {
   try {
@@ -80,7 +85,9 @@ const signup = async (req, res, next) => {
     else if (role === 'faculty') profile = await Faculty.findOne({ user_id: user._id });
     else if (role === 'admin') profile = await Admin.findOne({ user_id: user._id });
 
-    return apiResponse.created(res, { user: user.toSafeObject(), profile, accessToken }, 'Registration successful');
+    const college = await getCollegeSummary(user.college_id);
+
+    return apiResponse.created(res, { user: user.toSafeObject(), profile, college, accessToken }, 'Registration successful');
   } catch (error) { next(error); }
 };
 
@@ -125,7 +132,9 @@ const login = async (req, res, next) => {
       needs_verification = !isPasswordChanged || !isProfileComplete;
     }
 
-    return apiResponse.success(res, { user: user.toSafeObject(), profile, accessToken, needs_verification }, 'Login successful');
+    const college = await getCollegeSummary(user.college_id);
+
+    return apiResponse.success(res, { user: user.toSafeObject(), profile, college, accessToken, needs_verification }, 'Login successful');
   } catch (error) { next(error); }
 };
 

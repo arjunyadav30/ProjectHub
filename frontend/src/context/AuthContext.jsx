@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [college, setCollege] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async () => {
@@ -13,9 +14,11 @@ export const AuthProvider = ({ children }) => {
       const { data } = await userAPI.getMe();
       setUser(data.data.user);
       setProfile(data.data.profile);
+      setCollege(data.data.college || null);
     } catch {
       setUser(null);
       setProfile(null);
+      setCollege(null);
       localStorage.removeItem('accessToken');
     } finally {
       setLoading(false);
@@ -57,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('accessToken', data.data.accessToken);
     setUser(data.data.user);
     setProfile(data.data.profile);
+    setCollege(data.data.college || null);
     return data.data;
   };
 
@@ -65,6 +69,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('accessToken', data.data.accessToken);
     setUser(data.data.user);
     setProfile(data.data.profile);
+    setCollege(data.data.college || null);
     return data.data;
   };
 
@@ -73,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     setUser(null);
     setProfile(null);
+    setCollege(null);
   };
 
   const updateProfile = (newProfile) => setProfile(newProfile);
@@ -82,6 +88,7 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{
       user, profile, loading,
+      college,
       login, signup, logout,
       updateProfile, updateUser,
       fetchMe, refreshUser,

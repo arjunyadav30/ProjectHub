@@ -45,7 +45,7 @@ const adminLinks = [
 ];
 
 export const Sidebar = ({ onClose }) => {
-  const { user, logout } = useAuth();
+  const { user, college, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
@@ -53,6 +53,7 @@ export const Sidebar = ({ onClose }) => {
     user?.role === 'admin' ? adminLinks :
     user?.role === 'faculty' ? facultyLinks :
     studentLinks;
+  const appTitle = college?.name ? `${college.name} ProjectHub` : 'ProjectHub';
 
   const handleLogout = async () => {
     await logout();
@@ -68,7 +69,7 @@ export const Sidebar = ({ onClose }) => {
           <GraduationCap className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-gray-900 dark:text-white truncate">ProjectHub</p>
+          <p className="text-sm font-bold text-gray-900 dark:text-white truncate" title={appTitle}>{appTitle}</p>
           <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
         </div>
         {onClose && (

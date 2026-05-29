@@ -199,13 +199,10 @@ exports.bulkImportStudents = async (req, res, next) => {
           year: year || null, session: academicSession || '', phone: phone || '',
         }], { session });
 
-        const emailStatus = await sendCredentialsAndTrack(results, email, name, tempPassword);
-        if (!emailStatus.sent) {
-          throw new Error(`Credentials email failed: ${emailStatus.reason || 'unknown error'}`);
-        }
-
         await session.commitTransaction();
         results.created++;
+
+        await sendCredentialsAndTrack(results, email, name, tempPassword);
       } catch (err) {
         results.failed.push({ email: row.email, reason: err.message });
         if (session?.inTransaction()) await session.abortTransaction();
@@ -348,13 +345,10 @@ exports.bulkImportFaculty = async (req, res, next) => {
           name, email, department: department || '', designation: designation || '', phone: phone || '',
         }], { session });
 
-        const emailStatus = await sendCredentialsAndTrack(results, email, name, tempPassword);
-        if (!emailStatus.sent) {
-          throw new Error(`Credentials email failed: ${emailStatus.reason || 'unknown error'}`);
-        }
-
         await session.commitTransaction();
         results.created++;
+
+        await sendCredentialsAndTrack(results, email, name, tempPassword);
       } catch (err) {
         results.failed.push({ email: row.email, reason: err.message });
         if (session?.inTransaction()) await session.abortTransaction();
