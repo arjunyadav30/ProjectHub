@@ -100,6 +100,15 @@ const PublicRoute = ({ children }) => {
     </div>
   );
   if (user) {
+    const currentPath = window.location.pathname;
+    const isHackathonAuthPath = currentPath.startsWith('/hackathonhub/login') || currentPath.startsWith('/hackathonhub/signup');
+    const isProjectHubAuthPath = currentPath.startsWith('/projecthub/login') || currentPath.startsWith('/projecthub/signup');
+    const isHackathonRole = ['hackathon_admin', 'hackathon_user'].includes(user.role);
+
+    // Allow auth pages when switching between hubs with an active session
+    if (isHackathonAuthPath && !isHackathonRole) return children;
+    if (isProjectHubAuthPath && isHackathonRole) return children;
+
     const setupPath = getStudentSetupPath(user, profile);
     if (setupPath) return <Navigate to={setupPath} replace />;
     if (user.role === 'hackathon_admin') return <Navigate to="/hackathonhub/dashboard" replace />;
