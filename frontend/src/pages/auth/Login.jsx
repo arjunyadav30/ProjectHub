@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import { getErrorMessage } from '../../utils';
 
 const LoginPage = () => {
-  const { login } = useAuth();
+  const { login, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
@@ -15,6 +15,16 @@ const LoginPage = () => {
   const [form, setForm] = useState({ email: '', enrollment_no: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const isHackathonRole = user?.role === 'hackathon_admin' || user?.role === 'hackathon_user';
+
+  useEffect(() => {
+    // Hard-separate sessions between hubs: clear opposite-hub logged-in state on auth pages
+    if (isHackathonPortal && user && !isHackathonRole) {
+      logout().catch(() => {});
+    } else if (!isHackathonPortal && user && isHackathonRole) {
+      logout().catch(() => {});
+    }
+  }, [isHackathonPortal, isHackathonRole, user, logout]);
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 

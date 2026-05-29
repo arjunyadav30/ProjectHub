@@ -54,11 +54,12 @@ const ROLES = [
 ];
 
 const SignupPage = () => {
-  const { signup } = useAuth();
+  const { signup, logout, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
   const [role, setRole] = useState(isHackathonPortal ? 'hackathon_user' : 'student');
+  const isHackathonRole = user?.role === 'hackathon_admin' || user?.role === 'hackathon_user';
 
   const schema = role === 'student'
     ? studentSchema
@@ -76,6 +77,14 @@ const SignupPage = () => {
     setRole(isHackathonPortal ? 'hackathon_user' : 'student');
     reset();
   }, [isHackathonPortal, reset]);
+
+  useEffect(() => {
+    if (isHackathonPortal && user && !isHackathonRole) {
+      logout().catch(() => {});
+    } else if (!isHackathonPortal && user && isHackathonRole) {
+      logout().catch(() => {});
+    }
+  }, [isHackathonPortal, isHackathonRole, user, logout]);
 
   const handleRoleChange = (newRole) => { setRole(newRole); reset(); };
 
