@@ -30,6 +30,7 @@ router.delete('/faculty/:id', admin.deleteFaculty);
 // Website
 router.get('/website-config', admin.getWebsiteConfig);
 router.put('/website-config', admin.updateWebsiteConfig);
+router.put('/college', admin.updateCollege);
 
 // Featured projects
 router.post('/feature-project', admin.featureProject);

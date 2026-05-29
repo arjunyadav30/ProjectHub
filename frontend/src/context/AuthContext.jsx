@@ -83,6 +83,7 @@ export const AuthProvider = ({ children }) => {
 
   const updateProfile = (newProfile) => setProfile(newProfile);
   const updateUser = (newUser) => setUser(prev => ({ ...prev, ...newUser }));
+  const updateCollege = (newCollege) => setCollege(prev => ({ ...prev, ...newCollege }));
   const refreshUser = fetchMe; // alias
 
   return (
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }) => {
       user, profile, loading,
       college,
       login, signup, logout,
-      updateProfile, updateUser,
+      updateProfile, updateUser, updateCollege,
       fetchMe, refreshUser,
     }}>
       {children}

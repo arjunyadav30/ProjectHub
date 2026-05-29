@@ -5,9 +5,11 @@ import { useRefetchOnFocus } from '../../hooks/useRefetchOnFocus';
 import toast from 'react-hot-toast';
 import { DashboardLayout } from '../../components/common/Layout';
 import { StatsCard } from '../../components/common';
-import { Users, BookOpen, Calendar, Users2 } from 'lucide-react';
+import { Users, BookOpen, Calendar, Users2, Building2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const AdminDashboard = () => {
+  const { college } = useAuth();
   const [stats, setStats] = useState({ totalStudents: 0, totalFaculty: 0, totalEvents: 0, activeTeams: 0 });
   const [loading, setLoading] = useState(true);
   const [analytics, setAnalytics] = useState(null);
@@ -59,6 +61,21 @@ const AdminDashboard = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
           <p className="text-gray-500 text-sm mt-1">System overview and quick actions</p>
         </div>
+
+        {college && (
+          <div className="rounded-xl border border-blue-100 dark:border-blue-900/40 bg-blue-50 dark:bg-blue-900/20 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0">
+                <Building2 className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{college.name}</p>
+                <p className="text-xs text-gray-500">College Code: {college.code}</p>
+              </div>
+            </div>
+            <Link to="/admin/website" className="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline whitespace-nowrap">Edit</Link>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {cards.map(card => (

@@ -70,7 +70,10 @@ export const Sidebar = ({ onClose }) => {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-gray-900 dark:text-white truncate" title={appTitle}>{appTitle}</p>
-          <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+          <p className="text-xs text-gray-500 truncate">
+            <span className="capitalize">{user?.role}</span>
+            {college?.code ? <span> - {college.code}</span> : null}
+          </p>
         </div>
         {onClose && (
           <button onClick={onClose} className="lg:hidden p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">

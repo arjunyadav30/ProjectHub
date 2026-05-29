@@ -415,6 +415,28 @@ exports.updateWebsiteConfig = async (req, res, next) => {
   } catch (e) { next(e); }
 };
 
+exports.updateCollege = async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const code = String(req.body.code || '').trim().toUpperCase();
+
+    if (!name) return apiResponse.error(res, 'College name is required', 400);
+    if (!code) return apiResponse.error(res, 'College code is required', 400);
+
+    const existing = await College.findOne({ code, _id: { $ne: req.user.college_id } });
+    if (existing) return apiResponse.error(res, 'College code already exists', 409);
+
+    const college = await College.findByIdAndUpdate(
+      req.user.college_id,
+      { name, code },
+      { new: true, runValidators: true }
+    ).select('name code logo');
+
+    if (!college) return apiResponse.error(res, 'College not found', 404);
+    return apiResponse.success(res, college, 'College updated');
+  } catch (e) { next(e); }
+};
+
 // --- FEATURED PROJECTS -------------------------------------------------
 
 exports.featureProject = async (req, res, next) => {

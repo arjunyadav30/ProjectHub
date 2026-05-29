@@ -136,6 +136,7 @@ export const adminAPI = {
   // Website
   getWebsiteConfig: () => api.get('/admin/website-config'),
   updateWebsiteConfig: (data) => api.put('/admin/website-config', data),
+  updateCollege: (data) => api.put('/admin/college', data),
   featureProject: (data) => api.post('/admin/feature-project', data),
   unfeatureProject: (teamId) => api.delete(`/admin/feature-project/${teamId}`),
   // Marks
