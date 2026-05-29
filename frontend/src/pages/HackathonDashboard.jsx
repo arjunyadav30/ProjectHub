@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DashboardLayout } from '../components/common/Layout';
+import { Link } from 'react-router-dom';
 import { hackathonAPI } from '../api';
 import toast from 'react-hot-toast';
 import { getErrorMessage } from '../utils';
@@ -76,27 +76,35 @@ const HackathonDashboard = () => {
   };
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Hackathon Dashboard</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Koi bhi create kar sakta hai, aur sirf creator manage kar sakta hai.</p>
+    <div className="min-h-screen bg-gray-950 text-white px-4 py-8">
+      <div className="max-w-7xl mx-auto space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold">Hackathon Admin Dashboard</h1>
+            <p className="text-sm text-gray-400 mt-1">Project Management se alag creator-only management panel.</p>
+          </div>
+          <div className="flex gap-2">
+            <Link to="/hackathons" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500">Public Listing</Link>
+            <Link to="/hackathons/create" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">Create New</Link>
+          </div>
+        </div>
 
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 grid md:grid-cols-2 gap-3 text-white">
           <input className="bg-gray-800 border border-gray-700 rounded-xl p-2" placeholder="Title" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
           <input className="bg-gray-800 border border-gray-700 rounded-xl p-2" type="number" min="1" placeholder="Max Team Size" value={form.max_team_size} onChange={(e) => setForm((f) => ({ ...f, max_team_size: Number(e.target.value) }))} />
           <textarea className="md:col-span-2 bg-gray-800 border border-gray-700 rounded-xl p-2" placeholder="Description" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
 
-          <label className="text-sm">Scope Type
+          <label className="text-sm">Type
             <select className="mt-1 w-full bg-gray-800 border border-gray-700 rounded-xl p-2" value={form.scope_type} onChange={(e) => setForm((f) => ({ ...f, scope_type: e.target.value }))}>
               <option value="inter_college">Inter College</option>
               <option value="global">Global</option>
             </select>
           </label>
 
-          <label className="text-sm">Team Rule
+          <label className="text-sm">Team Policy
             <select className="mt-1 w-full bg-gray-800 border border-gray-700 rounded-xl p-2" value={form.team_college_rule} onChange={(e) => setForm((f) => ({ ...f, team_college_rule: e.target.value }))}>
-              <option value="same_college">Team same college ki honi chahiye</option>
-              <option value="mixed_college">Team mixed/other college ho sakti hai</option>
+              <option value="same_college">Only same-college teams</option>
+              <option value="mixed_college">Mixed-college teams allowed</option>
             </select>
           </label>
 
@@ -113,16 +121,19 @@ const HackathonDashboard = () => {
               <h3 className="text-lg font-semibold">{h.title}</h3>
               <p className="text-sm text-gray-300 mt-1">{h.description}</p>
               <p className="text-xs text-gray-400 mt-2">{h.scope_type} • {h.team_college_rule} • {h.status}</p>
-              <div className="mt-3 flex gap-2">
+              <div className="mt-3 flex gap-2 flex-wrap">
                 <button onClick={() => onEdit(h)} className="rounded-xl px-4 py-2 bg-blue-600 hover:bg-blue-500">Edit</button>
                 <button onClick={() => remove(h._id)} className="rounded-xl px-4 py-2 bg-red-600 hover:bg-red-500">Delete</button>
                 <button onClick={() => hackathonAPI.publishResults(h._id).then(() => { toast.success('Results published'); loadMine(); }).catch((e) => toast.error(getErrorMessage(e)))} className="rounded-xl px-4 py-2 bg-purple-600 hover:bg-purple-500">Publish Results</button>
               </div>
             </div>
           ))}
+          {mine.length === 0 && (
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 text-gray-400">Aapne abhi tak koi hackathon create nahi kiya.</div>
+          )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
