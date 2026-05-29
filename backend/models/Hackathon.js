@@ -12,11 +12,11 @@ const faqSchema = new mongoose.Schema({
 }, { _id: false });
 
 const hackathonSchema = new mongoose.Schema({
-  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: false, default: null, index: true },
   title: { type: String, required: true, trim: true },
   description: { type: String, default: '', trim: true },
   organizer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  organizer_role: { type: String, enum: ['admin', 'faculty', 'student'], required: true },
+  organizer_role: { type: String, enum: ['admin', 'faculty', 'student', 'hackathon_admin'], required: true },
   scope_type: { type: String, enum: ['inter_college', 'global'], default: 'inter_college' },
   team_college_rule: { type: String, enum: ['same_college', 'mixed_college'], default: 'same_college' },
   banner_image_url: { type: String, default: '' },

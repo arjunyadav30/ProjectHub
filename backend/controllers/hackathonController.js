@@ -8,6 +8,8 @@ const apiResponse = require('../utils/apiResponse');
 
 const scoreTotal = (scores = {}) => ['innovation', 'execution', 'ui_ux', 'impact']
   .reduce((sum, key) => sum + (Number(scores[key]) || 0), 0);
+const isHackathonAdmin = (user) => user?.role === 'hackathon_admin';
+const isHackathonUser = (user) => user?.role === 'hackathon_user';
 
 const isOwner = (hackathon, userId) => hackathon.organizer?.toString() === userId.toString();
 
@@ -29,6 +31,9 @@ const userCanUseTeam = async (team, user) => {
 
 const adminCreateHackathon = async (req, res, next) => {
   try {
+    if (!isHackathonAdmin(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_admin can create hackathons', 403);
+    }
     const data = {
       ...req.body,
       college_id: req.user.college_id,
@@ -55,6 +60,9 @@ const getMyHackathons = async (req, res, next) => {
 
 const adminUpdateHackathon = async (req, res, next) => {
   try {
+    if (!isHackathonAdmin(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_admin can update hackathons', 403);
+    }
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
     if (!ensureOwner(hackathon, req, res)) return;
@@ -76,6 +84,9 @@ const adminUpdateHackathon = async (req, res, next) => {
 
 const adminDeleteHackathon = async (req, res, next) => {
   try {
+    if (!isHackathonAdmin(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_admin can delete hackathons', 403);
+    }
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
     if (!ensureOwner(hackathon, req, res)) return;
@@ -92,6 +103,9 @@ const adminDeleteHackathon = async (req, res, next) => {
 
 const adminAssignJudges = async (req, res, next) => {
   try {
+    if (!isHackathonAdmin(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_admin can assign judges', 403);
+    }
     const { judge_ids = [] } = req.body;
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
@@ -107,6 +121,9 @@ const adminAssignJudges = async (req, res, next) => {
 
 const adminPublishResults = async (req, res, next) => {
   try {
+    if (!isHackathonAdmin(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_admin can publish results', 403);
+    }
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
     if (!ensureOwner(hackathon, req, res)) return;
@@ -147,6 +164,9 @@ const getHackathonById = async (req, res, next) => {
 
 const studentRegister = async (req, res, next) => {
   try {
+    if (!isHackathonUser(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_user can register teams', 403);
+    }
     const { team_id } = req.body;
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
@@ -176,6 +196,9 @@ const studentRegister = async (req, res, next) => {
 
 const studentSubmit = async (req, res, next) => {
   try {
+    if (!isHackathonUser(req.user)) {
+      return apiResponse.error(res, 'Only hackathon_user can submit projects', 403);
+    }
     const hackathon = await Hackathon.findById(req.params.id);
     if (!hackathon) return apiResponse.error(res, 'Hackathon not found', 404);
 

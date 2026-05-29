@@ -38,11 +38,13 @@ const signup = async (req, res, next) => {
       if (existingCollege) return apiResponse.error(res, 'College code already exists', 409);
       const college = await College.create({ name: college_name, code: normalizedCode });
       collegeId = college._id;
-    } else {
+    } else if (role === 'student' || role === 'faculty') {
       if (!normalizedCode) return apiResponse.error(res, 'College code is required', 400);
       const college = await College.findOne({ code: normalizedCode });
       if (!college) return apiResponse.error(res, 'Invalid college code', 404);
       collegeId = college._id;
+    } else if (role === 'hackathon_admin' || role === 'hackathon_user') {
+      collegeId = null;
     }
 
     const user = await User.create({

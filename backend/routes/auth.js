@@ -12,7 +12,7 @@ router.post('/signup', authLimiter, [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').isIn(['student', 'faculty', 'admin']).withMessage('Valid role required'),
+  body('role').isIn(['student', 'faculty', 'admin', 'hackathon_admin', 'hackathon_user']).withMessage('Valid role required'),
 ], validateRequest, signup);
 
 router.post('/login', authLimiter, login);

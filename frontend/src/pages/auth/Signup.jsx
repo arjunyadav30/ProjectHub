@@ -9,6 +9,13 @@ import { Button, Input, Select } from '../../components/common';
 import toast from 'react-hot-toast';
 import { BRANCHES, getErrorMessage } from '../../utils';
 
+const hackathonSchema = z.object({
+  name: z.string().min(2, 'Name required'),
+  email: z.string().email('Valid email required'),
+  password: z.string().min(6, 'Min 6 characters'),
+  phone: z.string().optional(),
+});
+
 const studentSchema = z.object({
   name: z.string().min(2, 'Name required'),
   email: z.string().email('Valid email required'),
@@ -42,6 +49,8 @@ const ROLES = [
   { value: 'student', label: 'Student', icon: GraduationCap },
   { value: 'faculty', label: 'Faculty', icon: BookOpen },
   { value: 'admin', label: 'Admin', icon: Shield },
+  { value: 'hackathon_admin', label: 'Hack Admin', icon: Shield },
+  { value: 'hackathon_user', label: 'Hack User', icon: GraduationCap },
 ];
 
 const SignupPage = () => {
@@ -49,7 +58,13 @@ const SignupPage = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState('student');
 
-  const schema = role === 'student' ? studentSchema : role === 'faculty' ? facultySchema : adminSchema;
+  const schema = role === 'student'
+    ? studentSchema
+    : role === 'faculty'
+      ? facultySchema
+      : role === 'admin'
+        ? adminSchema
+        : hackathonSchema;
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
     resolver: zodResolver(schema),
@@ -64,6 +79,8 @@ const SignupPage = () => {
       // Redirect based on role
       if (role === 'admin') navigate('/admin/dashboard');
       else if (role === 'faculty') navigate('/faculty/dashboard');
+      else if (role === 'hackathon_admin') navigate('/hackathons/dashboard');
+      else if (role === 'hackathon_user') navigate('/hackathons');
       else navigate('/setup/change-password'); // student 2-step
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -83,7 +100,7 @@ const SignupPage = () => {
 
         <div className="card p-8">
           {/* Role Toggle */}
-          <div className="grid grid-cols-3 gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
             {ROLES.map(({ value, label, icon: Icon }) => (
               <button key={value} type="button" onClick={() => handleRoleChange(value)}
                 className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${

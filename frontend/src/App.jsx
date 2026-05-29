@@ -79,6 +79,8 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (roles && !roles.includes(user.role)) {
+    if (user.role === 'hackathon_admin') return <Navigate to="/hackathons/dashboard" replace />;
+    if (user.role === 'hackathon_user') return <Navigate to="/hackathons" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -99,6 +101,8 @@ const PublicRoute = ({ children }) => {
   if (user) {
     const setupPath = getStudentSetupPath(user, profile);
     if (setupPath) return <Navigate to={setupPath} replace />;
+    if (user.role === 'hackathon_admin') return <Navigate to="/hackathons/dashboard" replace />;
+    if (user.role === 'hackathon_user') return <Navigate to="/hackathons" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -126,7 +130,7 @@ function App() {
         <Route path="/hackathons" element={<HackathonListingPage />} />
         <Route path="/hackathons/create" element={<HackathonCreatePage />} />
         <Route path="/hackathons/:id" element={<HackathonDetailPage />} />
-        <Route path="/hackathons/dashboard" element={<ProtectedRoute><HackathonDashboard /></ProtectedRoute>} />
+        <Route path="/hackathons/dashboard" element={<ProtectedRoute roles={['hackathon_admin']}><HackathonDashboard /></ProtectedRoute>} />
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
@@ -191,6 +195,8 @@ const DashboardRedirect = () => {
   const { user, profile } = useAuth();
   const setupPath = getStudentSetupPath(user, profile);
   if (setupPath) return <Navigate to={setupPath} replace />;
+  if (user?.role === 'hackathon_admin') return <Navigate to="/hackathons/dashboard" replace />;
+  if (user?.role === 'hackathon_user') return <Navigate to="/hackathons" replace />;
   if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
   return <Navigate to="/student/dashboard" replace />;

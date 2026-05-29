@@ -2,11 +2,11 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
+  college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: false, default: null, index: true },
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
   password_hash: { type: String, required: true },
-  role: { type: String, enum: ['student', 'faculty', 'admin'], required: true },
+  role: { type: String, enum: ['student', 'faculty', 'admin', 'hackathon_admin', 'hackathon_user'], required: true },
   phone: { type: String, default: '' },
   profile_image: { type: String, default: '' },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },
