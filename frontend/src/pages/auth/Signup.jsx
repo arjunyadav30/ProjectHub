@@ -81,8 +81,8 @@ const SignupPage = () => {
       // Redirect based on role
       if (role === 'admin') navigate('/admin/dashboard');
       else if (role === 'faculty') navigate('/faculty/dashboard');
-      else if (role === 'hackathon_admin') navigate('/hackathons/dashboard');
-      else if (role === 'hackathon_user') navigate('/hackathons');
+      else if (role === 'hackathon_admin') navigate('/hackathonhub/dashboard');
+      else if (role === 'hackathon_user') navigate('/hackathonhub');
       else navigate('/setup/change-password'); // student 2-step
     } catch (error) {
       toast.error(getErrorMessage(error));

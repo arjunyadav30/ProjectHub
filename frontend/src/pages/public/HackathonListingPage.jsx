@@ -35,7 +35,7 @@ const HackathonListingPage = () => {
           <div className="flex gap-2 flex-wrap">
             <Link to="/hackathonhub/login" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold w-fit">Login</Link>
             <Link to="/hackathonhub/signup" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 w-fit">Signup</Link>
-            <Link to="/hackathons/create" className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold w-fit">Create Hackathon</Link>
+            <Link to="/hackathonhub/create" className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 font-semibold w-fit">Create Hackathon</Link>
             <Link to="/" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500 w-fit">Back</Link>
           </div>
         </div>
@@ -68,7 +68,7 @@ const HackathonListingPage = () => {
                 <div className="flex flex-wrap gap-2 mt-4">
                   {(hack.tracks || []).slice(0, 3).map((track) => <span key={track} className="text-xs px-2 py-1 rounded-full bg-gray-800 border border-gray-700 flex items-center gap-1"><Tag className="w-3 h-3" />{track}</span>)}
                 </div>
-                <Link to={`/hackathons/${hack._id}`} className="mt-5 inline-block px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">View Details</Link>
+                <Link to={`/hackathonhub/${hack._id}`} className="mt-5 inline-block px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">View Details</Link>
               </div>
             );
           })}

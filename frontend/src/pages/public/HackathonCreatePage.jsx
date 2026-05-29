@@ -34,7 +34,7 @@ const HackathonCreatePage = () => {
       setSaving(true);
       await hackathonAPI.create(form);
       toast.success('Hackathon created');
-      navigate('/hackathons/dashboard');
+      navigate('/hackathonhub/dashboard');
     } catch (e) {
       toast.error(getErrorMessage(e));
     } finally {
@@ -47,7 +47,7 @@ const HackathonCreatePage = () => {
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Create Hackathon</h1>
-          <Link to="/hackathons" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500">Back</Link>
+          <Link to="/hackathonhub" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500">Back</Link>
         </div>
 
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 grid md:grid-cols-2 gap-3">

@@ -35,9 +35,9 @@ const LoginPage = () => {
 
       // Role-based redirect
       if (result.user.role === 'hackathon_admin') {
-        navigate('/hackathons/dashboard', { replace: true });
+        navigate('/hackathonhub/dashboard', { replace: true });
       } else if (result.user.role === 'hackathon_user') {
-        navigate('/hackathons', { replace: true });
+        navigate('/hackathonhub', { replace: true });
       } else if (result.user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else if (result.user.role === 'faculty') {

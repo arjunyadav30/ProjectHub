@@ -84,8 +84,8 @@ const HackathonDashboard = () => {
             <p className="text-sm text-gray-400 mt-1">Project Management se alag creator-only management panel.</p>
           </div>
           <div className="flex gap-2">
-            <Link to="/hackathons" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500">Public Listing</Link>
-            <Link to="/hackathons/create" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">Create New</Link>
+            <Link to="/hackathonhub" className="px-4 py-2 rounded-xl border border-gray-700 hover:border-blue-500">Public Listing</Link>
+            <Link to="/hackathonhub/create" className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 font-semibold">Create New</Link>
           </div>
         </div>
 
@@ -138,3 +138,4 @@ const HackathonDashboard = () => {
 };
 
 export default HackathonDashboard;
+
