@@ -21,6 +21,8 @@ const normalizeMarksPayload = (m = {}) => {
         label: String(label.label || 'Presentation').trim(),
         marks: Math.min(marksOutOf, Math.max(0, rawMarks)),
         marks_out_of: marksOutOf,
+        weight_percent: Math.min(100, Math.max(0, Number(label.weight_percent) || 0)),
+        feedback: String(label.feedback || '').trim(),
       };
     })
     : [{

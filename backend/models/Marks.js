@@ -12,6 +12,8 @@ const marksSchema = new mongoose.Schema({
     label: { type: String, required: true },
     marks: { type: Number, default: 0 },
     marks_out_of: { type: Number, default: 100 },
+    weight_percent: { type: Number, default: 0 },
+    feedback: { type: String, default: '' },
   }],
   presentation_marks: { type: Number, default: 0 },
   marks_out_of: { type: Number, default: 100 },

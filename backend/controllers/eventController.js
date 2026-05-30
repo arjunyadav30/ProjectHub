@@ -26,6 +26,25 @@ const normalizePresentationSchedules = (items = []) => {
     .filter(item => item.title && item.due_date && item.labels.length > 0);
 };
 
+const normalizeRubric = (rubric = {}) => {
+  const criteria = Array.isArray(rubric.criteria)
+    ? rubric.criteria
+        .map(item => ({
+          _id: item._id,
+          label: String(item.label || '').trim(),
+          description: String(item.description || '').trim(),
+          weight_percent: Math.min(100, Math.max(0, Number(item.weight_percent) || 0)),
+          marks_out_of: Math.max(1, Number(item.marks_out_of) || 100),
+        }))
+        .filter(item => item.label && item.weight_percent > 0 && item.marks_out_of > 0)
+    : [];
+  return {
+    enabled: Boolean(rubric.enabled) && criteria.length > 0,
+    title: String(rubric.title || 'Project Evaluation Rubric').trim() || 'Project Evaluation Rubric',
+    criteria,
+  };
+};
+
 // GET /api/events
 const getEvents = async (req, res, next) => {
   try {
@@ -97,7 +116,7 @@ const createEvent = async (req, res, next) => {
     const {
       title, description, allowed_semesters, allowed_years, allowed_branches,
       min_team_size, max_team_size, registration_start, registration_end, event_end_date,
-      presentation_schedule, presentation_schedules,
+      presentation_schedule, presentation_schedules, rubric,
     } = req.body;
 
     if (max_team_size < min_team_size) {
@@ -116,6 +135,7 @@ const createEvent = async (req, res, next) => {
       created_by: req.user._id,
       presentation_schedule: presentation_schedule || {},
       presentation_schedules: normalizePresentationSchedules(presentation_schedules),
+      rubric: normalizeRubric(rubric),
     });
 
     notifyEventUpdate(event._id).catch(() => {});
@@ -133,13 +153,13 @@ const updateEvent = async (req, res, next) => {
     const allowedFields = [
       'title', 'description', 'allowed_semesters', 'allowed_years', 'allowed_branches',
       'min_team_size', 'max_team_size', 'registration_start',
-      'registration_end', 'event_end_date', 'status', 'presentation_schedule', 'presentation_schedules',
+      'registration_end', 'event_end_date', 'status', 'presentation_schedule', 'presentation_schedules', 'rubric',
     ];
     allowedFields.forEach(field => {
       if (req.body[field] !== undefined) {
-        event[field] = field === 'presentation_schedules'
-          ? normalizePresentationSchedules(req.body[field])
-          : req.body[field];
+        if (field === 'presentation_schedules') event[field] = normalizePresentationSchedules(req.body[field]);
+        else if (field === 'rubric') event[field] = normalizeRubric(req.body[field]);
+        else event[field] = req.body[field];
       }
     });
     await event.save();

@@ -11,6 +11,13 @@ const presentationScheduleSchema = new mongoose.Schema({
   labels: [presentationLabelSchema],
 }, { _id: true, timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
+const rubricCriterionSchema = new mongoose.Schema({
+  label: { type: String, required: true, trim: true },
+  description: { type: String, default: '' },
+  weight_percent: { type: Number, required: true, min: 0, max: 100 },
+  marks_out_of: { type: Number, required: true, min: 1, default: 100 },
+}, { _id: true });
+
 const eventSchema = new mongoose.Schema({
   college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: true, index: true },
   title: { type: String, required: true, trim: true },
@@ -32,6 +39,11 @@ const eventSchema = new mongoose.Schema({
     marks_label: { type: String, default: 'Presentation' },
   },
   presentation_schedules: [presentationScheduleSchema],
+  rubric: {
+    enabled: { type: Boolean, default: false },
+    title: { type: String, default: 'Project Evaluation Rubric' },
+    criteria: [rubricCriterionSchema],
+  },
   featured_projects: [{
     project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
     deployed_link: { type: String, default: '' },

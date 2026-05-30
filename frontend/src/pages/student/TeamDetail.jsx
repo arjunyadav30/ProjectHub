@@ -4,11 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useRefetchOnFocus } from '../../hooks/useRefetchOnFocus';
 import { DashboardLayout } from '../../components/common/Layout';
 import { Button, Badge, Modal, Input, Select, EmptyState, ProgressBar, Skeleton } from '../../components/common';
-import { teamAPI, userAPI, videoAPI } from '../../api';
+import { aiAPI, teamAPI, userAPI, videoAPI } from '../../api';
 import {
   Github, Globe, Plus, Pencil, Trash2, CheckCircle,
   Clock, AlertCircle, Users, MessageSquare, LayoutGrid,
-  GripVertical, Calendar, User
+  GripVertical, Calendar, User, Sparkles, FileSearch
 } from 'lucide-react';
 import { formatDate, timeAgo, MODULE_STATUS_COLORS, getErrorMessage } from '../../utils';
 import toast from 'react-hot-toast';
@@ -233,6 +233,12 @@ const TeamDetailPage = () => {
   const [saving, setSaving] = useState(false);
   const [meetingAt, setMeetingAt] = useState('');
   const [meetingAttendance, setMeetingAttendance] = useState([]);
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiReview, setAiReview] = useState(null);
+  const [aiCode, setAiCode] = useState('');
+  const [aiNotes, setAiNotes] = useState('');
+  const [aiLoading, setAiLoading] = useState('');
+  const [showCodeReviewModal, setShowCodeReviewModal] = useState(false);
 
   // Kanban drag state
   const dragModuleId = useRef(null);
@@ -402,6 +408,30 @@ const TeamDetailPage = () => {
 
 
   /* ── progress note ── */
+  const generateSummary = async () => {
+    setAiLoading('summary');
+    try {
+      const { data } = await aiAPI.generateProjectSummary(id);
+      setAiSummary(data.data);
+      toast.success('AI summary generated');
+    } catch (err) { toast.error(getErrorMessage(err)); }
+    finally { setAiLoading(''); }
+  };
+
+  const runCodeReview = async () => {
+    if (!aiCode.trim() && !team?.project?.github_link) {
+      return toast.error('Paste code or add a GitHub link first');
+    }
+    setAiLoading('review');
+    try {
+      const { data } = await aiAPI.reviewProjectCode(id, { code: aiCode, notes: aiNotes });
+      setAiReview(data.data);
+      setShowCodeReviewModal(false);
+      toast.success('AI code review ready');
+    } catch (err) { toast.error(getErrorMessage(err)); }
+    finally { setAiLoading(''); }
+  };
+
   const addProgressNote = async () => {
     if (!progressNote.trim()) return toast.error('Write a note first');
     setSaving(true);
@@ -544,7 +574,71 @@ const TeamDetailPage = () => {
           <p className="text-xs text-gray-500">Attendance logs: {meetingAttendance.length}</p>
         </div>
 
-        {/* ── Project Details ── */}
+        {/* ── AI Project Assistant ── */}
+        <div className="card p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-white">AI Project Assistant</h2>
+              <p className="text-xs text-gray-500 mt-1">Generate a project summary and review pasted code.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="secondary" onClick={generateSummary} loading={aiLoading === 'summary'}>
+                <Sparkles className="w-4 h-4" /> Summary
+              </Button>
+              <Button size="sm" variant="secondary" onClick={() => setShowCodeReviewModal(true)}>
+                <FileSearch className="w-4 h-4" /> Code Review
+              </Button>
+            </div>
+          </div>
+
+          {(aiSummary || aiReview) && (
+            <div className="grid md:grid-cols-2 gap-3">
+              {aiSummary && (
+                <div className="rounded-xl border border-blue-100 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-900/10 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">Summary</p>
+                    <span className="text-[11px] uppercase tracking-wide text-blue-500">{aiSummary.source}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{aiSummary.summary}</p>
+                  {aiSummary.next_steps?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Next steps</p>
+                      <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                        {aiSummary.next_steps.map((step) => <li key={step}>- {step}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+              {aiReview && (
+                <div className="rounded-xl border border-amber-100 dark:border-amber-900/50 bg-amber-50/70 dark:bg-amber-900/10 p-4">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">Code Review</p>
+                    <span className="text-[11px] uppercase tracking-wide text-amber-600">{aiReview.source}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{aiReview.verdict}</p>
+                  {aiReview.issues?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Issues</p>
+                      <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                        {aiReview.issues.map((issue) => <li key={issue}>- {issue}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                  {aiReview.suggestions?.length > 0 && (
+                    <div className="mt-3">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Suggestions</p>
+                      <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
+                        {aiReview.suggestions.map((suggestion) => <li key={suggestion}>- {suggestion}</li>)}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="card p-5">
           <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Project Details</h2>
           <div className="space-y-3">
@@ -910,6 +1004,33 @@ const TeamDetailPage = () => {
       </Modal>
 
       {/* ── Assign Faculty Modal ── */}
+      <Modal open={showCodeReviewModal} onClose={() => setShowCodeReviewModal(false)} title="AI Code Review" size="lg">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Review Notes</label>
+            <input
+              value={aiNotes}
+              onChange={e => setAiNotes(e.target.value)}
+              className="input w-full"
+              placeholder="Focus area, file name, or concern..."
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Code</label>
+            <textarea
+              value={aiCode}
+              onChange={e => setAiCode(e.target.value)}
+              className="input min-h-[260px] font-mono text-xs"
+              placeholder="Paste a component, API route, controller, or config file..."
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setShowCodeReviewModal(false)}>Cancel</Button>
+            <Button onClick={runCodeReview} loading={aiLoading === 'review'}>Run Review</Button>
+          </div>
+        </div>
+      </Modal>
+
       <Modal open={showAssignModal} onClose={() => setShowAssignModal(false)} title="Assign Mentor Faculty">
         <div className="space-y-4">
           <Select

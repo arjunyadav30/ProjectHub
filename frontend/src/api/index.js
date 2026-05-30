@@ -201,6 +201,8 @@ export const projectAPI = {
 
 export const aiAPI = {
   getRecommendations: (difficulty = 'all') => api.get('/ai/recommendations', { params: { difficulty } }),
+  generateProjectSummary: (teamId) => api.post(`/ai/teams/${teamId}/summary`),
+  reviewProjectCode: (teamId, data) => api.post(`/ai/teams/${teamId}/code-review`, data),
 };
 
 export const integrationAPI = {
