@@ -20,8 +20,7 @@ const getCollegeSummary = async (collegeId) => {
   return College.findById(collegeId).select('name code logo');
 };
 const PROJECTHUB_ROLES = ['student', 'faculty', 'admin'];
-const HACKATHON_ROLES = ['hackathon_admin', 'hackathon_user'];
-const scopeFromRole = (role) => (PROJECTHUB_ROLES.includes(role) ? 'projecthub' : 'hackathonhub');
+const scopeFromRole = () => 'projecthub';
 
 // POST /api/auth/signup
 const signup = async (req, res, next) => {
@@ -47,8 +46,6 @@ const signup = async (req, res, next) => {
       const college = await College.findOne({ code: normalizedCode });
       if (!college) return apiResponse.error(res, 'Invalid college code', 404);
       collegeId = college._id;
-    } else if (role === 'hackathon_admin' || role === 'hackathon_user') {
-      collegeId = null;
     }
 
     const user = await User.create({
@@ -157,9 +154,7 @@ const login = async (req, res, next) => {
 const loginForRoles = (allowedRoles) => async (req, res, next) => {
   try {
     const { email, enrollment_no, password } = req.body;
-    const expectedScope = allowedRoles.includes('hackathon_admin') || allowedRoles.includes('hackathon_user')
-      ? 'hackathonhub'
-      : 'projecthub';
+    const expectedScope = 'projecthub';
     let user;
     if (enrollment_no) {
       const student = await Student.findOne({ enrollment_no: enrollment_no.toUpperCase() });
@@ -289,9 +284,7 @@ module.exports = {
   signup,
   login,
   signupProjectHub: signupForRoles(PROJECTHUB_ROLES),
-  signupHackathonHub: signupForRoles(HACKATHON_ROLES),
   loginProjectHub: loginForRoles(PROJECTHUB_ROLES),
-  loginHackathonHub: loginForRoles(HACKATHON_ROLES),
   logout,
   refreshToken,
   forgotPassword,

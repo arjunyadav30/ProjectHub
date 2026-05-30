@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { Button, Input } from '../../components/common';
@@ -7,24 +7,12 @@ import toast from 'react-hot-toast';
 import { getErrorMessage } from '../../utils';
 
 const LoginPage = () => {
-  const { login, logout, user } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
   const [loginType, setLoginType] = useState('email'); // 'email' | 'enrollment'
   const [form, setForm] = useState({ email: '', enrollment_no: '', password: '' });
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const isHackathonRole = user?.role === 'hackathon_admin' || user?.role === 'hackathon_user';
-
-  useEffect(() => {
-    // Hard-separate sessions between hubs: clear opposite-hub logged-in state on auth pages
-    if (isHackathonPortal && user && !isHackathonRole) {
-      logout().catch(() => {});
-    } else if (!isHackathonPortal && user && isHackathonRole) {
-      logout().catch(() => {});
-    }
-  }, [isHackathonPortal, isHackathonRole, user, logout]);
 
   const setField = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -40,15 +28,11 @@ const LoginPage = () => {
         ? { enrollment_no: form.enrollment_no, password: form.password }
         : { email: form.email, password: form.password };
 
-      const result = await login(payload, isHackathonPortal ? 'hackathonhub' : 'projecthub');
+      const result = await login(payload, 'projecthub');
       toast.success(`Welcome back, ${result.user.name.split(' ')[0]}!`);
 
       // Role-based redirect
-      if (result.user.role === 'hackathon_admin') {
-        navigate('/hackathonhub/dashboard', { replace: true });
-      } else if (result.user.role === 'hackathon_user') {
-        navigate('/hackathonhub', { replace: true });
-      } else if (result.user.role === 'admin') {
+      if (result.user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else if (result.user.role === 'faculty') {
         navigate('/faculty/dashboard', { replace: true });
@@ -83,7 +67,6 @@ const LoginPage = () => {
         </div>
 
         <div className="card p-8">
-          {!isHackathonPortal && (
           <div className="flex gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
             {[
               { id: 'email', label: 'Email' },
@@ -99,10 +82,9 @@ const LoginPage = () => {
               </button>
             ))}
           </div>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isHackathonPortal || loginType === 'email' ? (
+            {loginType === 'email' ? (
               <Input label="Email" type="email" placeholder="you@college.edu"
                 value={form.email} onChange={e => setField('email', e.target.value)} required />
             ) : (
@@ -128,7 +110,7 @@ const LoginPage = () => {
 
           <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
             Don't have an account?{' '}
-            <Link to={isHackathonPortal ? '/hackathonhub/signup' : '/projecthub/signup'} className="text-blue-600 font-medium hover:underline">Create one</Link>
+            <Link to="/projecthub/signup" className="text-blue-600 font-medium hover:underline">Create one</Link>
           </p>
         </div>
       </div>

@@ -33,7 +33,6 @@ const vivaRoutes = require('./routes/viva');
 const portfolioRoutes = require('./routes/portfolio');
 const reportRoutes = require('./routes/reports');
 const subscriptionRoutes = require('./routes/subscription');
-const hackathonRoutes = require('./routes/hackathons');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initRealtime } = require('./utils/realtime');
 
@@ -206,7 +205,6 @@ app.use('/api/viva', vivaRoutes);
 app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/subscription', subscriptionRoutes);
-app.use('/api/hackathons', hackathonRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'ProjectHub API running', timestamp: new Date() }));

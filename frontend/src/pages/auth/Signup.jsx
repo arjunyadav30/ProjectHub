@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -8,13 +8,6 @@ import { GraduationCap, BookOpen, Shield } from 'lucide-react';
 import { Button, Input, Select } from '../../components/common';
 import toast from 'react-hot-toast';
 import { BRANCHES, getErrorMessage } from '../../utils';
-
-const hackathonSchema = z.object({
-  name: z.string().min(2, 'Name required'),
-  email: z.string().email('Valid email required'),
-  password: z.string().min(6, 'Min 6 characters'),
-  phone: z.string().optional(),
-});
 
 const studentSchema = z.object({
   name: z.string().min(2, 'Name required'),
@@ -49,57 +42,33 @@ const ROLES = [
   { value: 'student', label: 'Student', icon: GraduationCap },
   { value: 'faculty', label: 'Faculty', icon: BookOpen },
   { value: 'admin', label: 'Admin', icon: Shield },
-  { value: 'hackathon_admin', label: 'Hack Admin', icon: Shield },
-  { value: 'hackathon_user', label: 'Hack User', icon: GraduationCap },
 ];
 
 const SignupPage = () => {
-  const { signup, logout, user } = useAuth();
+  const { signup } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const isHackathonPortal = location.pathname.startsWith('/hackathonhub');
-  const [role, setRole] = useState(isHackathonPortal ? 'hackathon_user' : 'student');
-  const isHackathonRole = user?.role === 'hackathon_admin' || user?.role === 'hackathon_user';
+  const [role, setRole] = useState('student');
 
   const schema = role === 'student'
     ? studentSchema
     : role === 'faculty'
       ? facultySchema
-      : role === 'admin'
-        ? adminSchema
-        : hackathonSchema;
+      : adminSchema;
 
   const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm({
     resolver: zodResolver(schema),
   });
 
-  useEffect(() => {
-    setRole(isHackathonPortal ? 'hackathon_user' : 'student');
-    reset();
-  }, [isHackathonPortal, reset]);
-
-  useEffect(() => {
-    if (isHackathonPortal && user && !isHackathonRole) {
-      logout().catch(() => {});
-    } else if (!isHackathonPortal && user && isHackathonRole) {
-      logout().catch(() => {});
-    }
-  }, [isHackathonPortal, isHackathonRole, user, logout]);
-
   const handleRoleChange = (newRole) => { setRole(newRole); reset(); };
 
   const onSubmit = async (data) => {
     try {
-      const safeRole = isHackathonPortal
-        ? (['hackathon_admin', 'hackathon_user'].includes(role) ? role : 'hackathon_user')
-        : (['student', 'faculty', 'admin'].includes(role) ? role : 'student');
-      const result = await signup({ ...data, role: safeRole }, isHackathonPortal ? 'hackathonhub' : 'projecthub');
+      const safeRole = ['student', 'faculty', 'admin'].includes(role) ? role : 'student';
+      const result = await signup({ ...data, role: safeRole }, 'projecthub');
       toast.success(`Welcome, ${result.user.name.split(' ')[0]}!`);
       // Redirect based on role
       if (safeRole === 'admin') navigate('/admin/dashboard');
       else if (safeRole === 'faculty') navigate('/faculty/dashboard');
-      else if (safeRole === 'hackathon_admin') navigate('/hackathonhub/dashboard');
-      else if (safeRole === 'hackathon_user') navigate('/hackathonhub');
       else navigate('/setup/change-password'); // student 2-step
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -119,10 +88,7 @@ const SignupPage = () => {
 
         <div className="card p-8">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-            {(isHackathonPortal
-              ? ROLES.filter(r => ['hackathon_admin', 'hackathon_user'].includes(r.value))
-              : ROLES.filter(r => ['student', 'faculty', 'admin'].includes(r.value))
-            ).map(({ value, label, icon: Icon }) => (
+            {ROLES.map(({ value, label, icon: Icon }) => (
               <button key={value} type="button" onClick={() => handleRoleChange(value)}
                 className={`flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium transition-all ${
                   role === value
@@ -172,7 +138,7 @@ const SignupPage = () => {
 
           <p className="text-sm text-center text-gray-600 dark:text-gray-400 mt-6">
             Already have an account?{' '}
-            <Link to={isHackathonPortal ? '/hackathonhub/login' : '/projecthub/login'} className="text-blue-600 font-medium hover:underline">Sign in</Link>
+            <Link to="/projecthub/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
           </p>
         </div>
       </div>

@@ -63,9 +63,7 @@ export const authAPI = {
   signup: (data) => api.post('/auth/signup', data),
   login: (data) => api.post('/auth/login', data),
   signupProjectHub: (data) => api.post('/auth/projecthub/signup', data),
-  signupHackathonHub: (data) => api.post('/auth/hackathonhub/signup', data),
   loginProjectHub: (data) => api.post('/auth/projecthub/login', data),
-  loginHackathonHub: (data) => api.post('/auth/hackathonhub/login', data),
   logout: () => api.post('/auth/logout'),
   changePassword: (data) => api.post('/auth/change-password', data),
   completeProfile: (data) => api.post('/auth/complete-profile', data),
@@ -185,23 +183,6 @@ export const notificationAPI = {
 export const publicAPI = {
   getWebsiteConfig: () => api.get('/public/website-config'),
   getFeaturedProjects: () => api.get('/public/featured-projects'),
-};
-
-export const hackathonAPI = {
-  getAll: (params) => api.get('/hackathons', { params }),
-  getMine: () => api.get('/hackathons/mine'),
-  getById: (id) => api.get(`/hackathons/${id}`),
-  create: (data) => api.post('/hackathons', data),
-  update: (id, data) => api.put(`/hackathons/${id}`, data),
-  delete: (id) => api.delete(`/hackathons/${id}`),
-  assignJudges: (id, data) => api.post(`/hackathons/${id}/judges`, data),
-  publishResults: (id) => api.post(`/hackathons/${id}/publish-results`),
-  register: (id, data) => api.post(`/hackathons/${id}/register`, data),
-  submit: (id, data) => api.post(`/hackathons/${id}/submit`, data),
-  getJudgeAssigned: () => api.get('/hackathons/judge/assigned'),
-  getJudgeSubmissions: (id) => api.get(`/hackathons/${id}/judge/submissions`),
-  scoreSubmission: (id, subId, data) => api.post(`/hackathons/${id}/submissions/${subId}/score`, data),
-  getLeaderboard: (id) => api.get(`/hackathons/${id}/leaderboard`),
 };
 
 export const projectAPI = {

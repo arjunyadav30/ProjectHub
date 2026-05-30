@@ -4,11 +4,6 @@ import { Toaster } from 'react-hot-toast';
 
 // Public
 import HomePage from './pages/public/HomePage';
-import HubSelectorPage from './pages/public/HubSelectorPage';
-import HackathonListingPage from './pages/public/HackathonListingPage';
-import HackathonDetailPage from './pages/public/HackathonDetailPage';
-import HackathonCreatePage from './pages/public/HackathonCreatePage';
-import HackathonDashboard from './pages/HackathonDashboard';
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -80,8 +75,6 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (roles && !roles.includes(user.role)) {
-    if (user.role === 'hackathon_admin') return <Navigate to="/hackathonhub/dashboard" replace />;
-    if (user.role === 'hackathon_user') return <Navigate to="/hackathonhub" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -100,19 +93,8 @@ const PublicRoute = ({ children }) => {
     </div>
   );
   if (user) {
-    const currentPath = window.location.pathname;
-    const isHackathonAuthPath = currentPath.startsWith('/hackathonhub/login') || currentPath.startsWith('/hackathonhub/signup');
-    const isProjectHubAuthPath = currentPath.startsWith('/projecthub/login') || currentPath.startsWith('/projecthub/signup');
-    const isHackathonRole = ['hackathon_admin', 'hackathon_user'].includes(user.role);
-
-    // Allow auth pages when switching between hubs with an active session
-    if (isHackathonAuthPath && !isHackathonRole) return children;
-    if (isProjectHubAuthPath && isHackathonRole) return children;
-
     const setupPath = getStudentSetupPath(user, profile);
     if (setupPath) return <Navigate to={setupPath} replace />;
-    if (user.role === 'hackathon_admin') return <Navigate to="/hackathonhub/dashboard" replace />;
-    if (user.role === 'hackathon_user') return <Navigate to="/hackathonhub" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -136,16 +118,10 @@ function App() {
         <Route path="/report-preview" element={<ReportPreview />} />
 
         {/* ── Public ── */}
-        <Route path="/" element={<HubSelectorPage />} />
+        <Route path="/" element={<HomePage />} />
         <Route path="/projecthub" element={<HomePage />} />
-        <Route path="/hackathonhub" element={<HackathonListingPage />} />
-        <Route path="/hackathonhub/create" element={<HackathonCreatePage />} />
-        <Route path="/hackathonhub/:id" element={<HackathonDetailPage />} />
-        <Route path="/hackathonhub/dashboard" element={<ProtectedRoute roles={['hackathon_admin']}><HackathonDashboard /></ProtectedRoute>} />
         <Route path="/projecthub/login" element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/projecthub/signup" element={<PublicRoute><Signup /></PublicRoute>} />
-        <Route path="/hackathonhub/login" element={<PublicRoute><Login /></PublicRoute>} />
-        <Route path="/hackathonhub/signup" element={<PublicRoute><Signup /></PublicRoute>} />
         <Route path="/login" element={<Navigate to="/projecthub/login" replace />} />
         <Route path="/signup" element={<Navigate to="/projecthub/signup" replace />} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
@@ -210,8 +186,6 @@ const DashboardRedirect = () => {
   const { user, profile } = useAuth();
   const setupPath = getStudentSetupPath(user, profile);
   if (setupPath) return <Navigate to={setupPath} replace />;
-  if (user?.role === 'hackathon_admin') return <Navigate to="/hackathonhub/dashboard" replace />;
-  if (user?.role === 'hackathon_user') return <Navigate to="/hackathonhub" replace />;
   if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
   return <Navigate to="/student/dashboard" replace />;
