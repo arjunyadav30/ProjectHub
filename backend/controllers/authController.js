@@ -280,6 +280,27 @@ const resetPassword = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+// POST /api/auth/verify-email
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.body;
+    if (!token) return apiResponse.error(res, 'Verification token is required', 400);
+
+    const user = await User.findOne({
+      email_verification_token: token,
+      email_verification_expires: { $gt: Date.now() },
+    });
+    if (!user) return apiResponse.error(res, 'Invalid or expired verification link', 400);
+
+    user.email_verified = true;
+    user.email_verification_token = undefined;
+    user.email_verification_expires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return apiResponse.success(res, null, 'Email verified successfully');
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   signup,
   login,
@@ -289,6 +310,7 @@ module.exports = {
   refreshToken,
   forgotPassword,
   resetPassword,
+  verifyEmail,
   changePassword,
   completeProfile,
 };

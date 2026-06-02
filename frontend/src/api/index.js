@@ -69,6 +69,7 @@ export const authAPI = {
   completeProfile: (data) => api.post('/auth/complete-profile', data),
   forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
   resetPassword: (data) => api.post('/auth/reset-password', data),
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
 };
 
 // ─── Users ───────────────────────────────────────────────────────

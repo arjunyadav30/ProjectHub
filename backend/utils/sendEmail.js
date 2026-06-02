@@ -2,6 +2,12 @@ const transporter = require('../config/nodemailer');
 
 const emailSendTimeout = parseInt(process.env.EMAIL_SEND_TIMEOUT || '15000');
 
+const getClientUrl = (path = '/') => {
+  const base = (process.env.FRONTEND_URL || process.env.CLIENT_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  const cleanPath = `/${String(path || '').replace(/^\/+/, '')}`;
+  return `${base}${cleanPath}`;
+};
+
 const withTimeout = (promise, timeoutMs) => {
   let timeout;
   const timeoutPromise = new Promise((_, reject) => {
@@ -23,7 +29,7 @@ const sendEmail = async ({ to, subject, html }) => {
 };
 
 exports.sendCredentialsEmail = async (email, name, loginEmail, password) => {
-  const clientUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const loginUrl = getClientUrl('/projecthub/login');
   return sendEmail({
     to: email,
     subject: 'Welcome to ProjectHub - Your Login Credentials',
@@ -34,14 +40,14 @@ exports.sendCredentialsEmail = async (email, name, loginEmail, password) => {
         <p><strong>Email:</strong> ${loginEmail}</p>
         <p><strong>Temporary Password:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:4px;">${password}</code></p>
       </div>
-      <p>Please <a href="${clientUrl}/login" style="color:#1d4ed8;">login here</a> and change your password immediately.</p>
+      <p>Please <a href="${loginUrl}" style="color:#1d4ed8;">login here</a> and change your password immediately.</p>
       <p style="color:#6b7280;font-size:12px;">This is an automated message from ProjectHub.</p>
     </div>`,
   });
 };
 
 exports.sendPasswordResetEmail = async (email, name, token) => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
+  const resetUrl = getClientUrl(`/reset-password?token=${encodeURIComponent(token)}`);
   return sendEmail({
     to: email,
     subject: 'ProjectHub - Password Reset Request',
@@ -55,7 +61,7 @@ exports.sendPasswordResetEmail = async (email, name, token) => {
 };
 
 exports.sendVerificationEmail = async (email, name, token) => {
-  const url = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+  const url = getClientUrl(`/verify-email?token=${encodeURIComponent(token)}`);
   return sendEmail({
     to: email,
     subject: 'ProjectHub - Verify your email',
@@ -64,33 +70,41 @@ exports.sendVerificationEmail = async (email, name, token) => {
 };
 
 exports.sendTeamInviteEmail = async (email, name, teamName, eventTitle) => {
+  const notificationsUrl = getClientUrl('/notifications');
   return sendEmail({
     to: email,
     subject: `ProjectHub - Team Invitation: ${teamName}`,
-    html: `<p>Hi ${name}, you have been invited to join team <strong>${teamName}</strong> for <strong>${eventTitle}</strong>. Please login to accept or reject.</p>`,
+    html: `<p>Hi ${name}, you have been invited to join team <strong>${teamName}</strong> for <strong>${eventTitle}</strong>.</p>
+      <p><a href="${notificationsUrl}">Open notifications</a> to accept or reject.</p>`,
   });
 };
 
 exports.sendLeaderRequestEmail = async (email, name, teamName, eventTitle, acceptToken, rejectToken) => {
+  const notificationsUrl = getClientUrl('/notifications');
   return sendEmail({
     to: email,
     subject: `ProjectHub - Team Leader Request: ${teamName}`,
-    html: `<p>Hi ${name}, you have been selected as team leader for <strong>${teamName}</strong> in <strong>${eventTitle}</strong>. Please login to respond.</p>`,
+    html: `<p>Hi ${name}, you have been selected as team leader for <strong>${teamName}</strong> in <strong>${eventTitle}</strong>.</p>
+      <p><a href="${notificationsUrl}">Open notifications</a> to respond.</p>`,
   });
 };
 
 exports.sendRegistrationStatusEmail = async (email, name, teamName, status, reason) => {
+  const projectsUrl = getClientUrl('/student/projects');
   return sendEmail({
     to: email,
     subject: `ProjectHub - Team Registration ${status === 'approved' ? 'Approved' : 'Rejected'}`,
-    html: `<p>Hi ${name}, your team <strong>${teamName}</strong> registration has been <strong>${status}</strong>${reason ? `. Reason: ${reason}` : ''}.</p>`,
+    html: `<p>Hi ${name}, your team <strong>${teamName}</strong> registration has been <strong>${status}</strong>${reason ? `. Reason: ${reason}` : ''}.</p>
+      <p><a href="${projectsUrl}">Open my projects</a></p>`,
   });
 };
 
 exports.sendFacultyAssignedEmail = async (email, name, teamName, facultyName) => {
+  const projectsUrl = getClientUrl('/student/projects');
   return sendEmail({
     to: email,
     subject: 'ProjectHub - Mentor Faculty Assigned',
-    html: `<p>Hi ${name}, <strong>${facultyName}</strong> has been assigned as your team <strong>${teamName}</strong>'s mentor.</p>`,
+    html: `<p>Hi ${name}, <strong>${facultyName}</strong> has been assigned as your team <strong>${teamName}</strong>'s mentor.</p>
+      <p><a href="${projectsUrl}">Open my projects</a></p>`,
   });
 };

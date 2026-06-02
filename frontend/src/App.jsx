@@ -8,6 +8,7 @@ import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
+import { VerifyEmailPage } from './pages/auth/ForgotReset';
 
 // Student setup
 import ChangePassword from './pages/auth/ChangePassword';
@@ -126,6 +127,9 @@ function App() {
         <Route path="/signup" element={<Navigate to="/projecthub/signup" replace />} />
         <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
         <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/verify-email" element={<PublicRoute><VerifyEmailPage /></PublicRoute>} />
+        <Route path="/projecthub/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+        <Route path="/projecthub/verify-email" element={<PublicRoute><VerifyEmailPage /></PublicRoute>} />
 
         {/* ── Student Setup ── */}
         <Route path="/setup/change-password" element={<ProtectedRoute roles={['student']}><ChangePassword /></ProtectedRoute>} />

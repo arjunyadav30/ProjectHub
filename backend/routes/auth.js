@@ -11,6 +11,7 @@ const {
   refreshToken,
   forgotPassword,
   resetPassword,
+  verifyEmail,
   changePassword,
   completeProfile,
 } = require('../controllers/authController');
@@ -39,5 +40,6 @@ router.post('/change-password', protect, changePassword);
 router.post('/complete-profile', protect, completeProfile);
 router.post('/forgot-password', authLimiter, forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/verify-email', authLimiter, verifyEmail);
 
 module.exports = router;

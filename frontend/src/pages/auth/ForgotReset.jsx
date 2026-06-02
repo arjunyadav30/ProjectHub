@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { authAPI } from '../../api';
 import { Button, Input } from '../../components/common';
@@ -99,7 +99,7 @@ export const VerifyEmailPage = () => {
   const [status, setStatus] = useState('verifying');
   const token = searchParams.get('token');
 
-  useState(() => {
+  useEffect(() => {
     if (token) {
       authAPI.verifyEmail(token)
         .then(() => setStatus('success'))
