@@ -54,6 +54,11 @@ const generateTempPassword = () => {
   return pw;
 };
 
+const createProjectHubUserPayload = (payload) => ({
+  ...payload,
+  auth_scope: 'projecthub',
+});
+
 const normalizeImportRow = (row = {}) => {
   const normalized = {};
   Object.entries(row).forEach(([key, value]) => {
@@ -138,7 +143,7 @@ exports.getStudents = async (req, res, next) => {
 exports.addStudent = async (req, res, next) => {
   try {
     const { name, email, enrollment_no, branch, semester, year, session, phone } = req.body;
-    const existing = await User.findOne({ email, college_id: req.user.college_id });
+    const existing = await User.findOne({ email, auth_scope: 'projecthub' });
     if (existing) return apiResponse.error(res, 'Email already registered', 409);
 
     if (!name || !email) {
@@ -151,7 +156,7 @@ exports.addStudent = async (req, res, next) => {
     }
 
     const tempPassword = generateTempPassword();
-    const user = await User.create({ name, email, password_hash: tempPassword, role: 'student', phone: phone || '', college_id: req.user.college_id });
+    const user = await User.create(createProjectHubUserPayload({ name, email, password_hash: tempPassword, role: 'student', phone: phone || '', college_id: req.user.college_id }));
     const finalEnrollment = enrollment_no || `TEMP${Date.now()}${Math.floor(Math.random() * 100)}`;
     const student = await Student.create({
       college_id: req.user.college_id,
@@ -182,16 +187,16 @@ exports.bulkImportStudents = async (req, res, next) => {
         const { name, email, enrollment_no, branch, semester, year, session: academicSession, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name and email required' }); continue; }
 
-        const existingUser = await User.findOne({ email, college_id: req.user.college_id });
+        const existingUser = await User.findOne({ email, auth_scope: 'projecthub' });
         if (existingUser) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
         session = await mongoose.startSession();
         session.startTransaction();
 
         const tempPassword = generateTempPassword();
-        const user = await User.create([{
+        const user = await User.create([createProjectHubUserPayload({
           name, email, password_hash: tempPassword, role: 'student', college_id: req.user.college_id,
-        }], { session });
+        })], { session });
 
         const finalEnrollment = enrollment_no || `TEMP${Date.now()}${Math.floor(Math.random() * 100)}`;
         await Student.create([{
@@ -304,11 +309,11 @@ exports.getFaculty = async (req, res, next) => {
 exports.addFaculty = async (req, res, next) => {
   try {
     const { name, email, faculty_id, department, designation, phone } = req.body;
-    const existing = await User.findOne({ email, college_id: req.user.college_id });
+    const existing = await User.findOne({ email, auth_scope: 'projecthub' });
     if (existing) return apiResponse.error(res, 'Email already registered', 409);
 
     const tempPassword = generateTempPassword();
-    const user = await User.create({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id });
+    const user = await User.create(createProjectHubUserPayload({ name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id }));
     const faculty = await Faculty.create({
       college_id: req.user.college_id,
       user_id: user._id, faculty_id: (faculty_id || `FAC${Date.now()}`).toUpperCase(),
@@ -331,16 +336,16 @@ exports.bulkImportFaculty = async (req, res, next) => {
       try {
         const { name, email, faculty_id, department, designation, phone } = normalizeImportRow(row);
         if (!name || !email) { results.failed.push({ email, reason: 'Name/email required' }); continue; }
-        const exists = await User.findOne({ email, college_id: req.user.college_id });
+        const exists = await User.findOne({ email, auth_scope: 'projecthub' });
         if (exists) { results.failed.push({ email, reason: 'Email exists' }); continue; }
 
         session = await mongoose.startSession();
         session.startTransaction();
 
         const tempPassword = generateTempPassword();
-        const user = await User.create([{
+        const user = await User.create([createProjectHubUserPayload({
           name, email, password_hash: tempPassword, role: 'faculty', phone: phone || '', college_id: req.user.college_id,
-        }], { session });
+        })], { session });
         await Faculty.create([{
           college_id: req.user.college_id,
           user_id: user[0]._id, faculty_id: (faculty_id || `FAC${Date.now()}${Math.floor(Math.random()*100)}`).toUpperCase(),

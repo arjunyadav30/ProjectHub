@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   college_id: { type: mongoose.Schema.Types.ObjectId, ref: 'College', required: false, default: null, index: true },
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, lowercase: true, trim: true },
-  auth_scope: { type: String, enum: ['projecthub'], required: true, index: true },
+  auth_scope: { type: String, enum: ['projecthub'], required: true, default: 'projecthub', index: true },
   password_hash: { type: String, required: true },
   role: { type: String, enum: ['student', 'faculty', 'admin'], required: true },
   phone: { type: String, default: '' },

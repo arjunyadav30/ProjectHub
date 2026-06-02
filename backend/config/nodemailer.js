@@ -8,6 +8,15 @@ const smtpPort = parseInt(process.env.EMAIL_PORT || '587');
 const smtpSecure = String(process.env.EMAIL_SECURE || '').toLowerCase() === 'true' || smtpPort === 465;
 const smtpFallbackEnabled = String(process.env.EMAIL_SMTP_FALLBACK || 'true').toLowerCase() !== 'false';
 
+const getFallbackConfigs = () => {
+  if (!smtpFallbackEnabled) return [];
+  return [
+    { port: 587, secure: false },
+    { port: 465, secure: true },
+    { port: 2525, secure: false },
+  ].filter(config => config.port !== smtpPort);
+};
+
 const createTransporter = (port, secure) => nodemailer.createTransport({
   host: smtpHost,
   port,
@@ -30,29 +39,47 @@ let transporter;
 
 if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
   const primaryTransporter = createTransporter(smtpPort, smtpSecure);
-  const fallbackConfig = smtpPort === 587
-    ? { port: 465, secure: true }
-    : smtpPort === 465
-      ? { port: 587, secure: false }
-      : null;
-  const fallbackTransporter = smtpFallbackEnabled && fallbackConfig
-    ? createTransporter(fallbackConfig.port, fallbackConfig.secure)
-    : null;
+  const fallbackTransporters = getFallbackConfigs().map(config => ({
+    ...config,
+    transporter: createTransporter(config.port, config.secure),
+  }));
 
   transporter = {
     sendMail: async (options) => {
       try {
         return await primaryTransporter.sendMail(options);
       } catch (error) {
-        const message = String(error?.message || '').toLowerCase();
-        const code = String(error?.code || '').toUpperCase();
-        const isTimeout = code.includes('TIMEOUT') || message.includes('timeout');
+        let lastError = error;
 
-        if (!isTimeout || !fallbackTransporter) throw error;
+        for (const fallback of fallbackTransporters) {
+          try {
+            console.warn(`Primary SMTP failed (${smtpPort}/${smtpSecure ? 'SSL' : 'STARTTLS'}). Retrying with ${fallback.port}/${fallback.secure ? 'SSL' : 'STARTTLS'}...`);
+            return await fallback.transporter.sendMail(options);
+          } catch (fallbackError) {
+            lastError = fallbackError;
+          }
+        }
 
-        console.warn(`Primary SMTP failed (${smtpPort}/${smtpSecure ? 'SSL' : 'STARTTLS'}). Retrying with fallback...`);
-        return fallbackTransporter.sendMail(options);
+        throw lastError;
       }
+    },
+    verify: async () => {
+      let lastError;
+      const transports = [
+        { port: smtpPort, secure: smtpSecure, transporter: primaryTransporter },
+        ...fallbackTransporters,
+      ];
+
+      for (const config of transports) {
+        try {
+          await config.transporter.verify();
+          return true;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError;
     },
   };
 } else {
