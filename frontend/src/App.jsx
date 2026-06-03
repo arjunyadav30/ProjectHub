@@ -49,6 +49,10 @@ import Notifications from './pages/Notifications';
 import People from './pages/People';
 import PublicProfile from './pages/PublicProfile';
 import ReviewSubmission from './pages/ReviewSubmission';
+import Leaderboard from './pages/Leaderboard';
+import Badges from './pages/Badges';
+import TrophyWall from './pages/admin/TrophyWall';
+import CertificateGenerator from './pages/admin/CertificateGenerator';
 
 // ── Auth guard ────────────────────────────────────────────
 const getStudentSetupPath = (user, profile) => {
@@ -143,6 +147,8 @@ function App() {
         <Route path="/admin/events/:id"   element={<ProtectedRoute roles={['admin']}><AdminEventDetail /></ProtectedRoute>} />
         <Route path="/admin/website"      element={<ProtectedRoute roles={['admin']}><AdminWebsite /></ProtectedRoute>} />
         <Route path="/subscription"       element={<ProtectedRoute roles={['admin']}><AdminSubscription /></ProtectedRoute>} />
+        <Route path="/admin/trophies"     element={<ProtectedRoute roles={['admin']}><TrophyWall /></ProtectedRoute>} />
+        <Route path="/admin/certificates/generate" element={<ProtectedRoute roles={['admin', 'faculty']}><CertificateGenerator /></ProtectedRoute>} />
 
         {/* ── Faculty ── */}
         <Route path="/faculty/dashboard"      element={<ProtectedRoute roles={['faculty']}><FacultyDashboard /></ProtectedRoute>} />
@@ -168,6 +174,9 @@ function App() {
         {/* ── Chat ── */}
         <Route path="/chat"             element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
         <Route path="/chat/:type/:id"   element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+
+        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+        <Route path="/badges" element={<ProtectedRoute><Badges /></ProtectedRoute>} />
 
         {/* ── Notifications ── */}
         <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />

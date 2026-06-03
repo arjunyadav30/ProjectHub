@@ -249,4 +249,20 @@ export const subscriptionAPI = {
   activate: (plan) => api.post('/subscription/activate', { plan }),
 };
 
+// ─── Achievements / Leaderboard ─────────────────────────────────
+export const achievementsAPI = {
+  // Badges
+  listBadges: () => api.get('/badges'),
+  createBadge: (data) => api.post('/badges', data),
+  awardBadge: (data) => api.post('/badges/award', data),
+  getUserBadges: (userId) => api.get(`/badges/user/${userId}`),
+  // Leaderboard
+  getTopTeams: (params) => api.get('/leaderboard/teams', { params }),
+  getTopStudents: (params) => api.get('/leaderboard/students', { params }),
+  // Certificates
+  createCertificate: (data) => api.post('/certificates', data),
+  getUserCertificates: (userId) => api.get(`/certificates/user/${userId}`),
+  getCertificate: (id) => api.get(`/certificates/${id}`),
+};
+
 export default api;
