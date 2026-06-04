@@ -120,12 +120,24 @@ const login = async (req, res, next) => {
       user = await User.findOne(loginFilter);
     }
 
-    if (!user) return apiResponse.error(res, 'Invalid credentials', 401);
-    if (user.status === 'suspended') return apiResponse.error(res, 'Account suspended. Contact admin.', 403);
-    if (user.status === 'inactive') return apiResponse.error(res, 'Account inactive. Contact admin.', 403);
+    if (!user) {
+      console.warn('[auth] login: user not found', { email, enrollment_no, auth_scope });
+      return apiResponse.error(res, 'Invalid credentials', 401);
+    }
+    if (user.status === 'suspended') {
+      console.warn('[auth] login: account suspended', { user: user._id, email: user.email });
+      return apiResponse.error(res, 'Account suspended. Contact admin.', 403);
+    }
+    if (user.status === 'inactive') {
+      console.warn('[auth] login: account inactive', { user: user._id, email: user.email });
+      return apiResponse.error(res, 'Account inactive. Contact admin.', 403);
+    }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) return apiResponse.error(res, 'Invalid credentials', 401);
+    if (!isMatch) {
+      console.warn('[auth] login: password mismatch', { user: user._id, email: user.email });
+      return apiResponse.error(res, 'Invalid credentials', 401);
+    }
 
     user.last_login = new Date();
     const accessToken = generateAccessToken(user._id, user.role);
@@ -164,8 +176,15 @@ const loginForRoles = (allowedRoles) => async (req, res, next) => {
     } else {
       user = await User.findOne({ email, auth_scope: expectedScope });
     }
-    if (!user) return apiResponse.error(res, 'Invalid credentials', 401);
-    if (!allowedRoles.includes(user.role)) return apiResponse.error(res, 'Invalid portal for this account', 403);
+    if (!user) {
+      console.warn('[auth] loginForRoles: user not found', { email, expectedScope });
+      return apiResponse.error(res, 'Invalid credentials', 401);
+    }
+    console.info('[auth] loginForRoles: user found', { email: user.email, role: user.role, auth_scope: user.auth_scope, status: user.status });
+    if (!allowedRoles.includes(user.role)) {
+      console.warn('[auth] loginForRoles: role not allowed', { user: user._id, role: user.role, allowedRoles });
+      return apiResponse.error(res, 'Invalid portal for this account', 403);
+    }
     req.body.auth_scope = expectedScope;
     return login(req, res, next);
   } catch (error) { next(error); }
@@ -230,10 +249,22 @@ const completeProfile = async (req, res, next) => {
 const refreshToken = async (req, res, next) => {
   try {
     const token = req.cookies.refreshToken;
-    if (!token) return apiResponse.error(res, 'No refresh token', 401);
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    if (!token) {
+      console.warn('[auth] refreshToken: no refresh token cookie present');
+      return apiResponse.error(res, 'No refresh token', 401);
+    }
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    } catch (err) {
+      console.warn('[auth] refreshToken: invalid or expired token', { err: err.message });
+      return apiResponse.error(res, 'Invalid or expired refresh token', 401);
+    }
     const user = await User.findById(decoded.id);
-    if (!user || user.refresh_token !== token) return apiResponse.error(res, 'Invalid refresh token', 401);
+    if (!user || user.refresh_token !== token) {
+      console.warn('[auth] refreshToken: token mismatch or user missing', { userId: decoded.id });
+      return apiResponse.error(res, 'Invalid refresh token', 401);
+    }
     const newAccessToken = generateAccessToken(user._id, user.role);
     const newRefreshToken = generateRefreshToken(user._id);
     user.refresh_token = newRefreshToken;
