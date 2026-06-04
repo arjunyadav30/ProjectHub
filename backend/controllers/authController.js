@@ -19,7 +19,8 @@ const getCollegeSummary = async (collegeId) => {
   if (!collegeId) return null;
   return College.findById(collegeId).select('name code logo');
 };
-const PROJECTHUB_ROLES = ['student', 'faculty', 'admin'];
+const PROJECTHUB_SIGNUP_ROLES = ['student', 'faculty', 'admin'];
+const PROJECTHUB_LOGIN_ROLES = ['student', 'faculty', 'admin', 'super_admin'];
 const scopeFromRole = () => 'projecthub';
 
 // POST /api/auth/signup
@@ -304,8 +305,8 @@ const verifyEmail = async (req, res, next) => {
 module.exports = {
   signup,
   login,
-  signupProjectHub: signupForRoles(PROJECTHUB_ROLES),
-  loginProjectHub: loginForRoles(PROJECTHUB_ROLES),
+  signupProjectHub: signupForRoles(PROJECTHUB_SIGNUP_ROLES),
+  loginProjectHub: loginForRoles(PROJECTHUB_LOGIN_ROLES),
   logout,
   refreshToken,
   forgotPassword,

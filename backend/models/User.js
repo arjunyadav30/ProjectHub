@@ -7,7 +7,7 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true, lowercase: true, trim: true },
   auth_scope: { type: String, enum: ['projecthub'], required: true, default: 'projecthub', index: true },
   password_hash: { type: String, required: true },
-  role: { type: String, enum: ['student', 'faculty', 'admin'], required: true },
+  role: { type: String, enum: ['student', 'faculty', 'admin', 'super_admin'], required: true },
   phone: { type: String, default: '' },
   profile_image: { type: String, default: '' },
   status: { type: String, enum: ['active', 'inactive', 'suspended'], default: 'active' },

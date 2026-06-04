@@ -22,6 +22,7 @@ import AdminEvents from './pages/admin/Events';
 import AdminEventDetail from './pages/admin/EventDetail';
 import AdminWebsite from './pages/admin/Website';
 import AdminSubscription from './pages/admin/Subscription';
+import SuperAdminDashboard from './pages/super-admin/Dashboard';
 
 // Faculty
 import FacultyDashboard from './pages/faculty/Dashboard';
@@ -80,6 +81,7 @@ const ProtectedRoute = ({ children, roles }) => {
   }
 
   if (roles && !roles.includes(user.role)) {
+    if (user.role === 'super_admin') return <Navigate to="/super-admin/dashboard" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -97,9 +99,10 @@ const PublicRoute = ({ children }) => {
       </div>
     </div>
   );
-  if (user) {
+    if (user) {
     const setupPath = getStudentSetupPath(user, profile);
     if (setupPath) return <Navigate to={setupPath} replace />;
+    if (user.role === 'super_admin') return <Navigate to="/super-admin/dashboard" replace />;
     if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
     if (user.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
     return <Navigate to="/student/dashboard" replace />;
@@ -150,6 +153,9 @@ function App() {
         <Route path="/admin/trophies"     element={<ProtectedRoute roles={['admin']}><TrophyWall /></ProtectedRoute>} />
         <Route path="/admin/certificates/generate" element={<ProtectedRoute roles={['admin', 'faculty']}><CertificateGenerator /></ProtectedRoute>} />
 
+        {/* Super Admin */}
+        <Route path="/super-admin/dashboard" element={<ProtectedRoute roles={['super_admin']}><SuperAdminDashboard /></ProtectedRoute>} />
+
         {/* ── Faculty ── */}
         <Route path="/faculty/dashboard"      element={<ProtectedRoute roles={['faculty']}><FacultyDashboard /></ProtectedRoute>} />
         <Route path="/faculty/teams"          element={<ProtectedRoute roles={['faculty']}><FacultyTeams /></ProtectedRoute>} />
@@ -199,6 +205,7 @@ const DashboardRedirect = () => {
   const { user, profile } = useAuth();
   const setupPath = getStudentSetupPath(user, profile);
   if (setupPath) return <Navigate to={setupPath} replace />;
+  if (user?.role === 'super_admin') return <Navigate to="/super-admin/dashboard" replace />;
   if (user?.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (user?.role === 'faculty') return <Navigate to="/faculty/dashboard" replace />;
   return <Navigate to="/student/dashboard" replace />;

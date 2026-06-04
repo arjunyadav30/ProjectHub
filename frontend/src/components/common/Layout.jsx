@@ -5,6 +5,7 @@ import {
   LayoutDashboard, Calendar, Users, Bell, User, LogOut,
   FolderOpen, Moon, Sun, Menu, X, GraduationCap, Globe,
   MessageSquare, BookOpen, Search, Mic, FileEdit,
+  Building2, CreditCard,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn, timeAgo } from '../../utils';
@@ -44,16 +45,25 @@ const adminLinks = [
   { to: '/profile', icon: User, label: 'Profile' },
 ];
 
+const superAdminLinks = [
+  { to: '/super-admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/super-admin/dashboard', icon: Building2, label: 'Colleges' },
+  { to: '/super-admin/dashboard', icon: CreditCard, label: 'Subscriptions' },
+];
+
 export const Sidebar = ({ onClose }) => {
   const { user, college, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
   const links =
+    user?.role === 'super_admin' ? superAdminLinks :
     user?.role === 'admin' ? adminLinks :
     user?.role === 'faculty' ? facultyLinks :
     studentLinks;
-  const appTitle = college?.name ? `${college.name} ProjectHub` : 'ProjectHub';
+  const appTitle = user?.role === 'super_admin'
+    ? 'ProjectHub Platform'
+    : college?.name ? `${college.name} ProjectHub` : 'ProjectHub';
 
   const handleLogout = async () => {
     await logout();

@@ -32,7 +32,9 @@ const LoginPage = () => {
       toast.success(`Welcome back, ${result.user.name.split(' ')[0]}!`);
 
       // Role-based redirect
-      if (result.user.role === 'admin') {
+      if (result.user.role === 'super_admin') {
+        navigate('/super-admin/dashboard', { replace: true });
+      } else if (result.user.role === 'admin') {
         navigate('/admin/dashboard', { replace: true });
       } else if (result.user.role === 'faculty') {
         navigate('/faculty/dashboard', { replace: true });

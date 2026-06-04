@@ -249,6 +249,11 @@ export const subscriptionAPI = {
   activate: (plan) => api.post('/subscription/activate', { plan }),
 };
 
+export const superAdminAPI = {
+  getDashboard: () => api.get('/super-admin/dashboard'),
+  updateSubscription: (collegeId, data) => api.put(`/super-admin/colleges/${collegeId}/subscription`, data),
+};
+
 // ─── Achievements / Leaderboard ─────────────────────────────────
 export const achievementsAPI = {
   // Badges
