@@ -7,6 +7,8 @@ router.use(protect);
 router.get('/my', authorize('student'), c.myGrades);
 router.get('/events/:eventId/grades', authorize('faculty', 'admin'), c.getEventGrades);
 router.get('/events/:eventId/grades.csv', authorize('faculty', 'admin'), c.exportCsv);
+router.get('/events/:eventId/marks', authorize('faculty', 'admin'), c.getEventMarks);
+router.put('/events/:eventId/marks', authorize('faculty', 'admin'), c.saveEventMark);
 router.put('/events/:eventId/weights', authorize('faculty', 'admin'), c.setWeights);
 router.post('/events/:eventId/finalize', authorize('faculty', 'admin'), c.finalize);
 router.get('/teams/:teamId/grades', authorize('faculty', 'admin'), c.getTeamGrades);

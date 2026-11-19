@@ -38,4 +38,33 @@ const computeFinalScore = (components = {}, weights = DEFAULT_EVAL_WEIGHTS) => {
   return { final_score: final == null ? null : Number(final.toFixed(1)), breakdown, missing, partial: missing.length > 0 };
 };
 
-module.exports = { DEFAULT_EVAL_WEIGHTS, COMPONENT_KEYS, sanitizeWeights, computeFinalScore };
+/** Averages presentation percentages (marks/out_of) and present/absent attendance for a student's mark rows. */
+const summarizeMarks = (marks = []) => {
+  const percentages = (Array.isArray(marks) ? marks : [])
+    .filter((m) => Number(m.out_of) > 0)
+    .map((m) => Math.min(100, Math.max(0, (Number(m.marks) / Number(m.out_of)) * 100)));
+  const presentation = percentages.length ? Number((percentages.reduce((a, b) => a + b, 0) / percentages.length).toFixed(1)) : null;
+  const marked = (Array.isArray(marks) ? marks : []).filter((m) => m.attendance === 'present' || m.attendance === 'absent');
+  const attendance = marked.length ? Number(((marked.filter((m) => m.attendance === 'present').length / marked.length) * 100).toFixed(1)) : null;
+  return { presentation, attendance, count: Array.isArray(marks) ? marks.length : 0 };
+};
+
+/** Validates a single student mark entered from the event marks editor. */
+const normalizeSingleMark = (input = {}) => {
+  const outOf = Number(input.out_of ?? input.marks_out_of);
+  const rawMarks = Number(input.marks ?? input.presentation_marks);
+  if (!Number.isFinite(outOf) || outOf < 1 || outOf > 1000) return { error: 'out_of must be between 1 and 1000' };
+  if (!Number.isFinite(rawMarks) || rawMarks < 0 || rawMarks > outOf) return { error: 'marks must be between 0 and out_of' };
+  const attendance = ['present', 'absent', 'not_marked'].includes(input.attendance) ? input.attendance : 'not_marked';
+  const label = (String(input.presentation_title || input.marks_label || 'Presentation').trim() || 'Presentation').slice(0, 200);
+  return { value: { marks: attendance === 'absent' ? 0 : rawMarks, out_of: outOf, attendance, label } };
+};
+
+module.exports = {
+  DEFAULT_EVAL_WEIGHTS,
+  COMPONENT_KEYS,
+  sanitizeWeights,
+  computeFinalScore,
+  summarizeMarks,
+  normalizeSingleMark,
+};

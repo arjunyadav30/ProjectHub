@@ -52,6 +52,8 @@ const checks = [
   ['get', '/api/evaluation/my'],
   ['get', '/api/evaluation/events/event1/grades'],
   ['get', '/api/evaluation/events/event1/grades.csv'],
+  ['get', '/api/evaluation/events/event1/marks'],
+  ['put', '/api/evaluation/events/event1/marks'],
   ['put', '/api/evaluation/events/event1/weights'],
   ['post', '/api/evaluation/events/event1/finalize'],
   ['get', '/api/evaluation/teams/team1/grades'],

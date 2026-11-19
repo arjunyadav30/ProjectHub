@@ -5,12 +5,16 @@ const Marks = require('../models/Marks');
 const VivaSession = require('../models/VivaSession');
 const ContributionReport = require('../models/ContributionReport');
 const FinalGrade = require('../models/FinalGrade');
+const Faculty = require('../models/Faculty');
 const apiResponse = require('../utils/apiResponse');
 const { canManageEvent, getTeamAccess } = require('../utils/teamAccess');
-const { computeFinalScore, sanitizeWeights, COMPONENT_KEYS, DEFAULT_EVAL_WEIGHTS } = require('../utils/evaluationEngine');
+const { computeFinalScore, sanitizeWeights, summarizeMarks, normalizeSingleMark, COMPONENT_KEYS, DEFAULT_EVAL_WEIGHTS } = require('../utils/evaluationEngine');
 const { createNotifications } = require('../utils/notifications');
+const { emitToUsers } = require('../utils/realtime');
 
 const pct = (value, outOf) => (outOf > 0 ? Math.min(100, Math.max(0, (value / outOf) * 100)) : null);
+const isValidObjectId = (value) => /^[a-f\d]{24}$/i.test(String(value || ''));
+const stamp = (value) => (value ? new Date(value).getTime() || 0 : 0);
 const weightsOf = (event) => sanitizeWeights(event.evaluation_weights?.toObject ? event.evaluation_weights.toObject() : event.evaluation_weights || DEFAULT_EVAL_WEIGHTS);
 
 const loadEvent = async (req, res) => {
@@ -187,15 +191,177 @@ exports.exportCsv = async (req, res, next) => {
   } catch (e) { return next(e); }
 };
 
-/** Student view: only their own, only after the evaluation is finalized. */
+/** Every mark the faculty has entered for this event, with the roster so blanks can be filled in. */
+exports.getEventMarks = async (req, res, next) => {
+  try {
+    const event = await loadEvent(req, res); if (!event) return;
+    const teams = await Team.find({ event_id: event._id, college_id: event.college_id, registration_status: 'approved' })
+      .select('team_name members assigned_faculty mentor_status')
+      .populate('members.student_id', 'name enrollment_no');
+    const teamIds = teams.map((t) => t._id);
+    const marks = await Marks.find({ event_id: event._id, college_id: event.college_id, team_id: { $in: teamIds } })
+      .populate('awarded_by', 'name')
+      .sort({ updated_at: -1 });
+
+    const isManager = canManageEvent(req.user, event);
+    const faculty = req.user.role === 'faculty' ? await Faculty.findOne({ user_id: req.user._id }).select('_id') : null;
+
+    const marksByStudent = new Map();
+    marks.forEach((m) => {
+      const key = m.student_id.toString();
+      if (!marksByStudent.has(key)) marksByStudent.set(key, []);
+      marksByStudent.get(key).push({
+        _id: m._id, presentation_id: m.presentation_id || null, presentation_title: m.presentation_title || m.marks_label || 'Presentation',
+        marks: m.presentation_marks, out_of: m.marks_out_of, percent: pct(m.presentation_marks, m.marks_out_of),
+        attendance: m.attendance, awarded_by: m.awarded_by?.name || '', updated_at: m.updated_at,
+      });
+    });
+
+    const roster = [];
+    teams.forEach((team) => {
+      const canEdit = isManager || !!(faculty && team.assigned_faculty?.toString() === faculty._id.toString() && team.mentor_status === 'accepted');
+      team.members.filter((m) => m.status === 'accepted' && m.student_id).forEach((m) => {
+        roster.push({
+          team_id: team._id, team_name: team.team_name, student_id: m.student_id._id, name: m.student_id.name,
+          enrollment_no: m.student_id.enrollment_no, can_edit: canEdit, marks: marksByStudent.get(m.student_id._id.toString()) || [],
+        });
+      });
+    });
+
+    const presentations = event.presentation_schedules.map((p) => ({
+      _id: p._id, title: p.title,
+      out_of: (p.labels || []).reduce((sum, label) => sum + Number(label.marks_out_of || 0), 0) || 100,
+    }));
+    return apiResponse.success(res, { presentations, roster });
+  } catch (e) { return next(e); }
+};
+
+/** Upsert one student's presentation mark from the event marks editor. */
+exports.saveEventMark = async (req, res, next) => {
+  try {
+    const event = await loadEvent(req, res); if (!event) return;
+    const { student_id } = req.body;
+    if (!isValidObjectId(student_id)) return apiResponse.error(res, 'student_id is invalid', 400);
+    const team = await Team.findOne({
+      event_id: event._id, college_id: event.college_id,
+      members: { $elemMatch: { student_id, status: 'accepted' } },
+    }).select('_id team_name college_id assigned_faculty mentor_status');
+    if (!team) return apiResponse.error(res, 'Student is not in an accepted team for this event', 404);
+    const access = await getTeamAccess(req.user, team);
+    if (!access.isAdmin && !access.isMentor && !canManageEvent(req.user, event)) {
+      return apiResponse.error(res, 'Only the event owner, an admin or the student\u2019s mentor can update marks', 403);
+    }
+    const normalized = normalizeSingleMark(req.body);
+    if (normalized.error) return apiResponse.error(res, normalized.error, 400);
+    const presentationId = req.body.presentation_id || null;
+    if (presentationId && !event.presentation_schedules.id(presentationId)) {
+      return apiResponse.error(res, 'Presentation not found in this event', 404);
+    }
+    const { value } = normalized;
+    const record = await Marks.findOneAndUpdate(
+      { college_id: event.college_id, event_id: event._id, team_id: team._id, student_id, presentation_id: presentationId },
+      {
+        $set: {
+          presentation_title: value.label, marks_label: value.label, presentation_marks: value.marks, marks_out_of: value.out_of,
+          attendance: value.attendance, awarded_by: req.user._id,
+          label_marks: [{ label_id: null, label: value.label, marks: value.marks, marks_out_of: value.out_of }],
+        },
+        $setOnInsert: { college_id: event.college_id, event_id: event._id, team_id: team._id, student_id, presentation_id: presentationId },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+
+    const student = await Student.findById(student_id).select('user_id');
+    if (student?.user_id) {
+      await createNotifications([{
+        recipient: student.user_id, type: 'marks_added', title: 'Marks Updated',
+        message: `Your marks for "${value.label}" were updated: ${value.marks}/${value.out_of}`,
+        reference_id: team._id, reference_type: 'Team',
+      }]);
+      emitToUsers([student.user_id], { scopes: ['evaluation', 'dashboard'], eventId: event._id.toString() });
+    }
+    return apiResponse.success(res, record, 'Marks saved');
+  } catch (e) { return next(e); }
+};
+
+/** Student view: final grades once published, plus every mark faculty has entered (live preview). */
 exports.myGrades = async (req, res, next) => {
   try {
     const student = await Student.findOne({ user_id: req.user._id }).select('_id');
     if (!student) return apiResponse.success(res, []);
-    const grades = await FinalGrade.find({ student_id: student._id, locked: true }).populate('event_id', 'title');
-    return apiResponse.success(res, grades.map((g) => ({
-      event: g.event_id?.title, breakdown: g.breakdown, partial: g.partial, computed_score: g.computed_score,
-      final_score: g.override?.score ?? g.computed_score, override_reason: g.override?.score != null ? g.override.reason : '', finalized_at: g.finalized_at,
-    })));
+    const [marks, grades] = await Promise.all([
+      Marks.find({ student_id: student._id })
+        .populate('event_id', 'title')
+        .populate('team_id', 'team_name')
+        .populate('awarded_by', 'name')
+        .sort({ updated_at: -1 })
+        .limit(300),
+      FinalGrade.find({ student_id: student._id }).populate('event_id', 'title'),
+    ]);
+
+    const entries = new Map();
+    const ensure = (eventId, title) => {
+      const key = String(eventId || 'unknown');
+      if (!entries.has(key)) {
+        entries.set(key, {
+          event_id: eventId || null, event: title || 'Event evaluation', team_name: '',
+          published: false, final_score: null, computed_score: null, breakdown: [], partial: false,
+          missing: [], override_reason: '', finalized_at: null, report_score: null,
+          marks: [], summary: { presentation: null, attendance: null, count: 0 }, live: null, updated_at: null,
+        });
+      }
+      return entries.get(key);
+    };
+    const touch = (entry, date) => { if (stamp(date) > stamp(entry.updated_at)) entry.updated_at = date; };
+
+    grades.forEach((g) => {
+      const entry = ensure(g.event_id?._id || g.event_id, g.event_id?.title);
+      entry.report_score = g.manual?.report_score ?? null;
+      touch(entry, g.updated_at || g.finalized_at);
+      if (!g.locked) return;
+      entry.published = true;
+      entry.breakdown = g.breakdown || [];
+      entry.partial = !!g.partial;
+      entry.missing = Array.isArray(g.missing) ? g.missing : [];
+      entry.computed_score = g.computed_score ?? null;
+      entry.final_score = g.override?.score ?? g.computed_score ?? null;
+      entry.override_reason = g.override?.score != null ? (g.override.reason || '') : '';
+      entry.finalized_at = g.finalized_at || null;
+    });
+
+    marks.forEach((m) => {
+      const eventId = m.event_id?._id || m.event_id;
+      const entry = ensure(eventId, m.event_id?.title);
+      if (!entry.team_name && m.team_id?.team_name) entry.team_name = m.team_id.team_name;
+      entry.marks.push({
+        id: m._id, presentation_id: m.presentation_id || null,
+        presentation_title: m.presentation_title || m.marks_label || 'Presentation',
+        marks: m.presentation_marks, out_of: m.marks_out_of, percent: pct(m.presentation_marks, m.marks_out_of),
+        attendance: m.attendance,
+        labels: (m.label_marks || []).map((l) => ({ label: l.label, marks: l.marks, out_of: l.marks_out_of })),
+        awarded_by: m.awarded_by?.name || '', updated_at: m.updated_at || m.created_at || null,
+      });
+      touch(entry, m.updated_at || m.created_at);
+    });
+
+    const list = [...entries.values()];
+    for (const entry of list) {
+      entry.summary = summarizeMarks(entry.marks);
+      if (entry.published || !entry.event_id || !entry.marks.length) continue;
+      try {
+        const event = await Event.findById(entry.event_id);
+        if (!event) continue;
+        const teamIds = [...new Set(marks
+          .filter((m) => String(m.event_id?._id || m.event_id) === String(entry.event_id))
+          .map((m) => String(m.team_id?._id || m.team_id)).filter(Boolean))];
+        if (!teamIds.length) continue;
+        const { rows } = await computeGrades(event, { _id: { $in: teamIds } });
+        const row = rows.find((r) => String(r.student_id) === String(student._id));
+        if (row) entry.live = { components: row.components, breakdown: row.breakdown, computed_score: row.computed_score, partial: row.partial, missing: row.missing };
+      } catch (_) { /* live preview is best-effort */ }
+    }
+
+    list.sort((a, b) => stamp(b.updated_at) - stamp(a.updated_at));
+    return apiResponse.success(res, list);
   } catch (e) { return next(e); }
 };

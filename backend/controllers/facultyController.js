@@ -6,6 +6,7 @@ const Marks = require('../models/Marks');
 const apiResponse = require('../utils/apiResponse');
 const { createNotification, resolveActionNotifications } = require('../utils/notifications');
 const { notifyTeamStakeholders } = require('../utils/realtime');
+const { canManageEvent } = require('../utils/teamAccess');
 
 const syncTeam = (teamId) => {
   if (teamId) notifyTeamStakeholders(teamId).catch(() => {});
@@ -100,10 +101,19 @@ exports.giveMarks = async (req, res, next) => {
     const { marks_data } = req.body;
     const team = await Team.findById(req.params.id).populate('event_id');
     if (!team) return apiResponse.error(res, 'Team not found', 404);
+    if (team.college_id?.toString() !== req.user.college_id?.toString()) return apiResponse.error(res, 'Team not found', 404);
+    if (!Array.isArray(marks_data) || marks_data.length === 0) return apiResponse.error(res, 'marks_data must be a non-empty array', 400);
+    if (marks_data.length > 200) return apiResponse.error(res, 'Too many mark rows in one request', 400);
+
     const faculty = await Faculty.findOne({ user_id: req.user._id });
     const isAssignedMentor = faculty && team.assigned_faculty?.toString() === faculty._id.toString();
-    if (req.user.role !== 'admin' && (!isAssignedMentor || team.mentor_status !== 'accepted')) {
-      return apiResponse.error(res, 'Only the accepted assigned mentor can give presentation marks', 403);
+    const isManager = team.event_id ? canManageEvent(req.user, team.event_id) : false;
+    if (req.user.role !== 'admin' && !isManager && (!isAssignedMentor || team.mentor_status !== 'accepted')) {
+      return apiResponse.error(res, 'Only the event owner, an admin or the accepted mentor can give presentation marks', 403);
+    }
+    const acceptedIds = new Set(team.members.filter((mem) => mem.status === 'accepted').map((mem) => mem.student_id.toString()));
+    for (const m of marks_data) {
+      if (!acceptedIds.has(String(m.student_id))) return apiResponse.error(res, 'Student is not an accepted member of this team', 400);
     }
 
     const results = [];
@@ -134,7 +144,9 @@ exports.giveMarks = async (req, res, next) => {
 // GET /api/faculty/teams/:id/marks
 exports.getTeamMarks = async (req, res, next) => {
   try {
-    const marks = await Marks.find({ team_id: req.params.id })
+    const team = await Team.findById(req.params.id).select('college_id');
+    if (!team || team.college_id?.toString() !== req.user.college_id?.toString()) return apiResponse.error(res, 'Team not found', 404);
+    const marks = await Marks.find({ team_id: team._id, college_id: team.college_id })
       .populate('student_id', 'name enrollment_no')
       .populate('awarded_by', 'name');
     return apiResponse.success(res, marks);
