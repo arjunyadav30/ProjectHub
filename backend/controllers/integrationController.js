@@ -1,17 +1,28 @@
 const Team = require('../models/Team');
 const apiResponse = require('../utils/apiResponse');
+const { getTeamAccess } = require('../utils/teamAccess');
+const { normalizeRepoUrl } = require('../utils/repoUrl');
 
 const parseRepo = (repoUrl = '') => {
-  const clean = String(repoUrl || '').trim().replace(/\.git$/, '');
-  const parts = clean.split('/').filter(Boolean);
-  if (parts.length < 2) return null;
-  return `${parts[parts.length - 2]}/${parts[parts.length - 1]}`;
+  const normalized = normalizeRepoUrl(repoUrl);
+  return normalized.ok ? normalized.full_name : null;
 };
 
 const fetchJson = async (url) => {
   const response = await fetch(url, { headers: { 'User-Agent': 'ProjectHub-App' } });
+  if (response.status === 404) throw new Error('Repository not found, or it is private');
   if (!response.ok) throw new Error(`GitHub API ${response.status}`);
   return response.json();
+};
+
+/** Loads a team and requires same-college membership, mentorship or admin access. */
+const authorizeTeamAccess = async (user, teamId) => {
+  const team = await Team.findById(teamId);
+  if (!team) return { error: [404, 'Team not found'] };
+  const access = await getTeamAccess(user, team);
+  if (!access.sameCollege) return { error: [404, 'Team not found'] };
+  if (!access.isAdmin && !access.isMentor && !access.isMember) return { error: [403, 'Not allowed'] };
+  return { team };
 };
 
 exports.connectGithubRepo = async (req, res, next) => {
@@ -19,14 +30,18 @@ exports.connectGithubRepo = async (req, res, next) => {
     const { repo_url } = req.body;
     if (!repo_url) return apiResponse.error(res, 'repo_url is required', 400);
 
-    const team = await Team.findById(req.params.teamId);
-    if (!team) return apiResponse.error(res, 'Team not found', 404);
+    const authorized = await authorizeTeamAccess(req.user, req.params.teamId);
+    if (authorized.error) return apiResponse.error(res, authorized.error[1], authorized.error[0]);
+    const { team } = authorized;
 
-    const fullName = parseRepo(repo_url);
-    if (!fullName) return apiResponse.error(res, 'Invalid repository URL', 400);
+    const normalized = normalizeRepoUrl(repo_url);
+    if (!normalized.ok) return apiResponse.error(res, normalized.error, 400);
 
-    team.project.github.repo_url = repo_url;
-    team.project.github.repo_full_name = fullName;
+    team.project.github.repo_url = normalized.canonical_url;
+    team.project.github_link = normalized.canonical_url;
+    team.project.github.repo_full_name = normalized.full_name;
+    team.project.github.repo_linked_at = new Date();
+    team.project.github.repo_linked_by = req.user._id;
     await team.save();
 
     return apiResponse.success(res, team.project.github, 'Repository connected');
@@ -35,8 +50,9 @@ exports.connectGithubRepo = async (req, res, next) => {
 
 exports.syncGithubRepo = async (req, res, next) => {
   try {
-    const team = await Team.findById(req.params.teamId);
-    if (!team) return apiResponse.error(res, 'Team not found', 404);
+    const authorized = await authorizeTeamAccess(req.user, req.params.teamId);
+    if (authorized.error) return apiResponse.error(res, authorized.error[1], authorized.error[0]);
+    const { team } = authorized;
 
     const fullName = team.project.github.repo_full_name;
     if (!fullName) return apiResponse.error(res, 'Repository not connected', 400);
@@ -67,8 +83,9 @@ exports.syncGithubRepo = async (req, res, next) => {
 
 exports.getGithubRepoData = async (req, res, next) => {
   try {
-    const team = await Team.findById(req.params.teamId).select('project.github team_name');
-    if (!team) return apiResponse.error(res, 'Team not found', 404);
+    const authorized = await authorizeTeamAccess(req.user, req.params.teamId);
+    if (authorized.error) return apiResponse.error(res, authorized.error[1], authorized.error[0]);
+    const { team } = authorized;
     return apiResponse.success(res, { team_name: team.team_name, github: team.project.github || {} });
   } catch (error) { return next(error); }
 };

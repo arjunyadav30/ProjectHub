@@ -1,14 +1,25 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { DashboardLayout } from '../../components/common/Layout';
 import { StatsCard, Badge, SkeletonCard, EmptyState, ProgressBar } from '../../components/common';
-import { teamAPI, eventAPI, aiAPI } from '../../api';
-import { Calendar, Users, Bell, ArrowRight, Clock, FolderOpen } from 'lucide-react';
+import { teamAPI, eventAPI, aiAPI, contributionAPI } from '../../api';
+import { Calendar, Users, Bell, ArrowRight, Clock, FolderOpen, Github, X } from 'lucide-react';
 import { formatDate, timeAgo, profileCompletion } from '../../utils';
 import { useNotifications } from '../../hooks/useNotifications';
 import { useRefetchOnFocus } from '../../hooks/useRefetchOnFocus';
+import { getData } from '../evaluation/shared';
 import toast from 'react-hot-toast';
+
+const NUDGE_SESSION_KEY = 'projecthub:repo-nudge-dismissed';
+const onboardingCache = new Map();
+const cachedOnboarding = async (teamId) => {
+  const hit = onboardingCache.get(String(teamId));
+  if (hit && Date.now() - hit.at < 2 * 60 * 1000) return hit.data;
+  const data = getData(await contributionAPI.onboarding(teamId));
+  onboardingCache.set(String(teamId), { at: Date.now(), data });
+  return data;
+};
 
 const StudentDashboard = () => {
   const { user, profile } = useAuth();
@@ -17,6 +28,8 @@ const StudentDashboard = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aiIdeas, setAiIdeas] = useState([]);
+  const [repoNudge, setRepoNudge] = useState(null);
+  const [nudgeDismissed, setNudgeDismissed] = useState(() => sessionStorage.getItem(NUDGE_SESSION_KEY) === '1');
 
   const loadDashboard = useCallback(() => {
     setLoading(true);
@@ -35,6 +48,33 @@ const StudentDashboard = () => {
   }, []);
 
   useRefetchOnFocus(loadDashboard, { liveScopes: ['teams', 'events', 'notifications', 'dashboard'] });
+
+  useEffect(() => {
+    if (loading || nudgeDismissed || !profile?._id) return undefined;
+    let active = true;
+    const mine = teams.filter(team => team.registration_status === 'approved'
+      && (team.members || []).some(member => member.status === 'accepted'
+        && String(member.student_id?._id || member.student_id) === String(profile._id)));
+    if (!mine.length) return undefined;
+    (async () => {
+      const pending = [];
+      for (const team of mine) {
+        try {
+          const onboarding = await cachedOnboarding(team._id);
+          if (!active) return;
+          if (onboarding?.status === 'no_repo' || onboarding?.status === 'mapping_needed') pending.push({ team, status: onboarding.status });
+        } catch { /* nudge is optional; ignore per-team failures */ }
+      }
+      if (active) setRepoNudge(pending[0] || null);
+    })();
+    return () => { active = false; };
+  }, [teams, loading, profile, nudgeDismissed]);
+
+  const dismissRepoNudge = () => {
+    setNudgeDismissed(true);
+    setRepoNudge(null);
+    sessionStorage.setItem(NUDGE_SESSION_KEY, '1');
+  };
 
   const completion = profileCompletion(profile, 'student');
   const pendingInvites = notifications.filter(n =>
@@ -76,6 +116,29 @@ const StudentDashboard = () => {
             <Link to="/student/profile" className="text-sm font-medium text-amber-700 hover:underline flex items-center gap-1">
               Update <ArrowRight className="w-4 h-4" />
             </Link>
+          </div>
+        )}
+
+        {/* Repository onboarding nudge */}
+        {repoNudge && !nudgeDismissed && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Github className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                  {repoNudge.status === 'no_repo' ? 'Link your GitHub repository' : 'Map your team contributors'}
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">
+                  {repoNudge.team.team_name}: {repoNudge.status === 'no_repo' ? 'no repository is linked yet.' : 'some members still need a GitHub username.'} Contribution analysis cannot start until this is done.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link to={`/teams/${repoNudge.team._id}`} className="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline whitespace-nowrap">Set up</Link>
+              <button type="button" onClick={dismissRepoNudge} aria-label="Dismiss reminder" className="p-1 rounded hover:bg-blue-100 dark:hover:bg-blue-900/40">
+                <X className="w-4 h-4 text-blue-600" />
+              </button>
+            </div>
           </div>
         )}
 

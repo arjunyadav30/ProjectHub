@@ -7,6 +7,8 @@ import { Button, Badge, Modal, Input } from '../../components/common';
 import { ChevronLeft, Award, MessageSquare, CheckCircle, XCircle, Kanban, Users } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getErrorMessage } from '../../utils';
+import RepositoryOnboardingCard from '../../components/contribution/RepositoryOnboardingCard';
+import TeamHealthPanel from '../evaluation/TeamHealthPanel';
 
 const FacultyTeamDetail = () => {
   const { id } = useParams();
@@ -214,6 +216,8 @@ const FacultyTeamDetail = () => {
     { id: 'suggestions', label: 'Suggestions' },
     { id: 'submission', label: 'Submission' },
     { id: 'viva', label: 'AI Viva Reviews' },
+    { id: 'contribution', label: 'Git Contribution' },
+    { id: 'health', label: 'Live Link' },
     { id: 'members', label: 'Members' },
   ];
 
@@ -283,6 +287,16 @@ const FacultyTeamDetail = () => {
             ) : vivaSessions.map((session) => (
               <div key={session._id} className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2">
                 <p className="text-sm font-medium">{session.student_user_id?.name} ({session.student_user_id?.email})</p>
+                {session.source === 'commit_ai' && <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2"><Badge variant="open">Commit-based</Badge><Badge>{session.generation_method || 'AI'}</Badge><Badge>{session.scoring_method || 'AI scoring'}</Badge></div>
+                  {(session.questions || []).map((question, index) => <div key={`${question.index}-${index}`} className="rounded-lg bg-gray-50 dark:bg-gray-800 p-3 space-y-1">
+                    <p className="text-sm font-medium">{question.question}</p><p className="text-xs text-gray-500">Commit {question.commit_sha} · {question.commit_message}</p>
+                    <p className="text-sm"><span className="font-medium">Answer:</span> {question.answer || 'No answer provided'}</p><p className="text-sm">Score: {question.score}/10 · {question.feedback}</p>
+                  </div>)}
+                  {session.trust && <div className={`rounded-lg p-3 text-sm ${session.trust.level === 'consistent' ? 'bg-green-50 dark:bg-green-900/20' : session.trust.level === 'verify' ? 'bg-amber-50 dark:bg-amber-900/20' : session.trust.level === 'check_mapping' ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-100 dark:bg-gray-800'}`}>
+                    <p className="font-semibold">Trust check · {session.trust.level}</p><p>Git score {session.trust.git_score_100 ?? '—'} · Viva score {session.trust.viva_score_100 ?? session.total_score ?? '—'} · Gap {session.trust.gap ?? '—'}</p><p>{session.trust.message}</p><p className="mt-2 text-xs">An evidence-based flag for review, not proof of misconduct.</p>
+                  </div>}
+                </div>}
                 <p className="text-xs text-gray-500">Score: {session.total_score}/{session.max_score}</p>
                 <p className="text-xs text-gray-600 dark:text-gray-300">{session.overall_feedback}</p>
                 <textarea
@@ -296,6 +310,8 @@ const FacultyTeamDetail = () => {
             ))}
           </div>
         )}
+        {activeTab === 'contribution' && <RepositoryOnboardingCard teamId={id} canAnalyze withPanel />}
+        {activeTab === 'health' && <TeamHealthPanel teamId={id} />}
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">

@@ -247,6 +247,11 @@ const AdminEventDetail = () => {
                 <p>Reg ends: <span className="font-medium">{formatDate(event.registration_end)}</span></p>
                 <p>Event ends: <span className="font-medium">{formatDate(event.event_end_date)}</span></p>
               </div>
+              <div className="flex flex-wrap gap-2 mt-4">
+                {[['schedule', 'Schedule'], ['dashboard', 'Marks Dashboard'], ['grades', 'Final Evaluation'], ['repos', 'Repositories'], ['health', 'Live Links']].map(([path, label]) => (
+                  <Link key={path} to={`/evaluation/events/${id}/${path}`} className="btn-secondary px-3 py-2 rounded-lg text-sm">{label}</Link>
+                ))}
+              </div>
             </div>
           </div>
         </div>

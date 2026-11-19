@@ -106,9 +106,18 @@ exports.addFacultyVivaReview = async (req, res, next) => {
   } catch (error) { return next(error); }
 };
 
+// Commit-based sessions must not leak expected answers, code context or the guide-only trust signal to students.
+const hideAnswerKey = (session) => {
+  const obj = session.toObject ? session.toObject() : { ...session };
+  if (obj.source !== 'commit_ai') return obj;
+  delete obj.trust;
+  obj.questions = (obj.questions || []).map(({ expected_points, context_excerpt, ...rest }) => rest);
+  return obj;
+};
+
 exports.getMyVivaSessions = async (req, res, next) => {
   try {
-    const sessions = await VivaSession.find({ student_user_id: req.user._id }).sort({ created_at: -1 }).limit(20);
+    const sessions = (await VivaSession.find({ student_user_id: req.user._id }).sort({ created_at: -1 }).limit(20)).map(hideAnswerKey);
     return apiResponse.success(res, sessions);
   } catch (error) { return next(error); }
 };
@@ -155,7 +164,7 @@ exports.getVivaSessionReport = async (req, res, next) => {
       total_score: session.total_score,
       max_score: session.max_score,
       overall_feedback: session.overall_feedback,
-      questions: session.questions,
+      questions: req.user.role === 'student' ? hideAnswerKey(session).questions : session.questions,
       faculty_review: session.faculty_review,
       created_at: session.created_at,
     });

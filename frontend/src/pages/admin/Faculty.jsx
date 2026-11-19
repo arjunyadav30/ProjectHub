@@ -41,8 +41,13 @@ const AdminFaculty = () => {
     if (!addForm.name || !addForm.email) return toast.error('Name and email required');
     setSaving(true);
     try {
-      await adminAPI.addFaculty(addForm);
-      toast.success('Faculty added and credentials emailed');
+      const res = await adminAPI.addFaculty(addForm);
+      const emailStatus = res.data?.data?.emailStatus;
+      if (emailStatus?.sent === false) {
+        toast.error(`Faculty added, but the credentials email failed${emailStatus.reason ? `: ${emailStatus.reason}` : ''}.`);
+      } else {
+        toast.success('Faculty added and credentials emailed');
+      }
       setShowAddModal(false);
       setAddForm({ name: '', email: '', faculty_id: '', department: '', designation: '', phone: '' });
       fetchFaculty();

@@ -23,6 +23,15 @@ import AdminEventDetail from './pages/admin/EventDetail';
 import AdminWebsite from './pages/admin/Website';
 import AdminSubscription from './pages/admin/Subscription';
 import SuperAdminDashboard from './pages/super-admin/Dashboard';
+import StudentSchedule from './pages/student/Schedule';
+import StudentEvaluation from './pages/student/Evaluation';
+import MySchedule from './pages/evaluation/MySchedule';
+import EventSchedule from './pages/evaluation/EventSchedule';
+import LiveScoresheet from './pages/evaluation/LiveScoresheet';
+import MarksDashboard from './pages/evaluation/MarksDashboard';
+import UnifiedGrades from './pages/evaluation/UnifiedGrades';
+import HealthBoard from './pages/evaluation/HealthBoard';
+import EventRepoOnboarding from './pages/evaluation/EventRepoOnboarding';
 
 // Faculty
 import FacultyDashboard from './pages/faculty/Dashboard';
@@ -162,6 +171,7 @@ function App() {
         <Route path="/faculty/teams/:id"      element={<ProtectedRoute roles={['faculty']}><FacultyTeamDetail /></ProtectedRoute>} />
         <Route path="/faculty/events"         element={<ProtectedRoute roles={['faculty']}><FacultyEvents /></ProtectedRoute>} />
         <Route path="/faculty/events/:id"     element={<ProtectedRoute roles={['faculty']}><FacultyEventDetail /></ProtectedRoute>} />
+        <Route path="/faculty/schedule" element={<ProtectedRoute roles={['faculty']}><MySchedule /></ProtectedRoute>} />
 
         {/* ── Student ── */}
         <Route path="/student/dashboard"  element={<ProtectedRoute roles={['student']}><StudentDashboard /></ProtectedRoute>} />
@@ -169,6 +179,8 @@ function App() {
         <Route path="/student/events"     element={<ProtectedRoute roles={['student']}><StudentEvents /></ProtectedRoute>} />
         <Route path="/student/projects"   element={<ProtectedRoute roles={['student']}><StudentProjects /></ProtectedRoute>} />
         <Route path="/student/viva"       element={<ProtectedRoute roles={['student']}><StudentViva /></ProtectedRoute>} />
+        <Route path="/student/schedule" element={<ProtectedRoute roles={['student']}><StudentSchedule /></ProtectedRoute>} />
+        <Route path="/student/evaluation" element={<ProtectedRoute roles={['student']}><StudentEvaluation /></ProtectedRoute>} />
         <Route path="/student/report-template-lock" element={<ProtectedRoute roles={['student']}><StudentTemplateLockReport /></ProtectedRoute>} />
 
         {/* ── Shared Event Detail ── */}
@@ -176,6 +188,12 @@ function App() {
 
         {/* ── Team Detail ── */}
         <Route path="/teams/:id" element={<ProtectedRoute><TeamDetail /></ProtectedRoute>} />
+        <Route path="/panel/slots/:slotId" element={<ProtectedRoute roles={['admin', 'faculty']}><LiveScoresheet /></ProtectedRoute>} />
+        <Route path="/evaluation/events/:eventId/schedule" element={<ProtectedRoute roles={['admin', 'faculty']}><EventSchedule /></ProtectedRoute>} />
+        <Route path="/evaluation/events/:eventId/dashboard" element={<ProtectedRoute roles={['admin', 'faculty']}><MarksDashboard /></ProtectedRoute>} />
+        <Route path="/evaluation/events/:eventId/grades" element={<ProtectedRoute roles={['admin', 'faculty']}><UnifiedGrades /></ProtectedRoute>} />
+        <Route path="/evaluation/events/:eventId/health" element={<ProtectedRoute roles={['admin', 'faculty']}><HealthBoard /></ProtectedRoute>} />
+        <Route path="/evaluation/events/:eventId/repos" element={<ProtectedRoute roles={['admin', 'faculty']}><EventRepoOnboarding /></ProtectedRoute>} />
 
         {/* ── Chat ── */}
         <Route path="/chat"             element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />

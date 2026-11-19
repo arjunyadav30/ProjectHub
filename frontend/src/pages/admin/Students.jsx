@@ -56,8 +56,13 @@ const AdminStudents = () => {
     }
     setSaving(true);
     try {
-      await adminAPI.addStudent({ name: addForm.name, email: addForm.email });
-      toast.success('Student added and credentials emailed');
+      const res = await adminAPI.addStudent({ name: addForm.name, email: addForm.email });
+      const emailStatus = res.data?.data?.emailStatus;
+      if (emailStatus?.sent === false) {
+        toast.error(`Student added, but the credentials email failed${emailStatus.reason ? `: ${emailStatus.reason}` : ''}.`);
+      } else {
+        toast.success('Student added and credentials emailed');
+      }
       setShowAddModal(false);
       setAddForm({ name: '', email: '' });
       fetchStudents();

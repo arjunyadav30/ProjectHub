@@ -1,3 +1,5 @@
+const dns = require('dns').setServers(['8.8.8.8', '1.1.1.1']);
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -37,12 +39,33 @@ const superAdminRoutes = require('./routes/superAdmin');
 const badgeRoutes = require('./routes/badges');
 const leaderboardRoutes = require('./routes/leaderboard');
 const certificateRoutes = require('./routes/certificates');
+const contributionRoutes = require('./routes/contributions');
+const scheduleRoutes = require('./routes/schedule');
+const panelRoutes = require('./routes/panel');
+const evaluationRoutes = require('./routes/evaluation');
+const healthMonitorRoutes = require('./routes/healthMonitor');
+const { startHealthMonitor } = require('./jobs/healthMonitor');
 const { errorHandler } = require('./middleware/errorHandler');
 const { initRealtime } = require('./utils/realtime');
 
 const app = express();
 const server = http.createServer(app);
 const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+const corsOrigins = process.env.NODE_ENV === 'production'
+  ? [frontendOrigin]
+  : [frontendOrigin, 'http://localhost:5173', 'http://127.0.0.1:5173'];
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (corsOrigins.includes(origin)) return true;
+  try {
+    const hostname = new URL(origin).hostname;
+    return /^(localhost|127\.\d+\.\d+\.\d+|10\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+)$/i.test(hostname);
+  } catch (_) {
+    return false;
+  }
+};
+// The cors package treats a function origin as an async callback, not a predicate.
+const corsOrigin = (origin, callback) => callback(null, isAllowedOrigin(origin));
 
 // Render/NGINX proxy ke peeche real client IP trust karna zaroori hai (rate-limit ke liye)
 app.set('trust proxy', 1);
@@ -50,7 +73,7 @@ app.set('trust proxy', 1);
 // Socket.io setup
 const io = new Server(server, {
   cors: {
-    origin: frontendOrigin,
+    origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -175,7 +198,7 @@ app.use(mongoSanitize());
 
 // CORS
 app.use(cors({
-  origin: frontendOrigin,
+  origin: corsOrigin,
   credentials: true,
 }));
 
@@ -213,6 +236,11 @@ app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/contributions', contributionRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/panel', panelRoutes);
+app.use('/api/evaluation', evaluationRoutes);
+app.use('/api/health-monitor', healthMonitorRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ success: true, message: 'ProjectHub API running', timestamp: new Date() }));
@@ -237,7 +265,8 @@ const PORT = process.env.PORT || 5000;
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ MongoDB Connected');
-    server.listen(PORT, () => console.log(`🚀 ProjectHub server running on port ${PORT}`));
+    startHealthMonitor();
+    server.listen(PORT, '0.0.0.0', () => console.log(`🚀 ProjectHub server running on http://0.0.0.0:${PORT}`));
   })
   .catch((err) => {
     console.error('❌ MongoDB connection error:', err);

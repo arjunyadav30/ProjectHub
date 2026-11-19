@@ -1,7 +1,7 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_ORIGIN = (import.meta.env.VITE_API_ORIGIN || 'http://localhost:5000').replace(/\/+$/, '');
+const API_ORIGIN = (import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '');
 const API_BASE_URL = `${API_ORIGIN}/api`;
 
 const api = axios.create({
@@ -229,6 +229,66 @@ export const vivaAPI = {
   start: (team_id) => api.post('/viva/start', { team_id }),
   submit: (session_id, answers) => api.post('/viva/submit', { session_id, answers }),
   facultyReview: (session_id, comment) => api.post('/viva/faculty-review', { session_id, comment }),
+  startCommit: (team_id) => api.post('/viva/commit/start', { team_id }),
+  submitCommit: (session_id, answers) => api.post('/viva/commit/submit', { session_id, answers }),
+};
+
+export const contributionAPI = {
+  generate: (teamId, body = {}) => api.post(`/contributions/teams/${teamId}/generate`, body),
+  latest: (teamId) => api.get(`/contributions/teams/${teamId}/latest`),
+  setAuthorMap: (teamId, mappings) => api.put(`/contributions/teams/${teamId}/author-map`, { mappings }),
+  saveDecision: (reportId, scores, comment = '') => api.put(`/contributions/reports/${reportId}/decision`, { scores, comment }),
+  eventSummary: (eventId) => api.get(`/contributions/events/${eventId}/summary`),
+  previewRepo: (body) => api.post('/contributions/repo/preview', body),
+  setRepo: (teamId, body) => api.put(`/contributions/teams/${teamId}/repo`, body),
+  onboarding: (teamId) => api.get(`/contributions/teams/${teamId}/onboarding`),
+  eventOnboarding: (eventId) => api.get(`/contributions/events/${eventId}/onboarding`),
+  remindOnboarding: (eventId, body = {}) => api.post(`/contributions/events/${eventId}/onboarding/remind`, body),
+  analyzeAll: (eventId, body = {}) => api.post(`/contributions/events/${eventId}/analyze-all`, body),
+  analyzeAllStatus: (eventId, jobId) => api.get(`/contributions/events/${eventId}/analyze-all/${jobId}`),
+};
+
+export const scheduleAPI = {
+  listPanels: (eventId) => api.get(`/schedule/events/${eventId}/panels`),
+  createPanel: (eventId, data) => api.post(`/schedule/events/${eventId}/panels`, data),
+  updatePanel: (eventId, panelId, data) => api.put(`/schedule/events/${eventId}/panels/${panelId}`, data),
+  deletePanel: (eventId, panelId) => api.delete(`/schedule/events/${eventId}/panels/${panelId}`),
+  auto: (eventId, presentationId, config) => api.post(`/schedule/events/${eventId}/presentations/${presentationId}/auto`, config),
+  slots: (eventId, presentationId) => api.get(`/schedule/events/${eventId}/presentations/${presentationId}/slots`),
+  publish: (eventId, presentationId) => api.post(`/schedule/events/${eventId}/presentations/${presentationId}/publish`),
+  updateSlot: (slotId, data) => api.patch(`/schedule/slots/${slotId}`, data),
+  requestReschedule: (slotId, data) => api.post(`/schedule/slots/${slotId}/reschedule-request`, data),
+  decideReschedule: (slotId, data) => api.patch(`/schedule/slots/${slotId}/reschedule-request`, data),
+  mine: () => api.get('/schedule/my'),
+  myCalendar: () => api.get('/schedule/my/calendar.ics', { responseType: 'blob' }),
+  slotCalendar: (slotId) => api.get(`/schedule/slots/${slotId}/calendar.ics`, { responseType: 'blob' }),
+};
+
+export const panelAPI = {
+  scoresheet: (slotId) => api.get(`/panel/slots/${slotId}/scoresheet`),
+  start: (slotId) => api.post(`/panel/slots/${slotId}/start`),
+  complete: (slotId) => api.post(`/panel/slots/${slotId}/complete`),
+  submitScore: (slotId, criteria, comment = '') => api.put(`/panel/slots/${slotId}/score`, { criteria, comment }),
+  leaderboard: (eventId, presentationId) => api.get(`/panel/events/${eventId}/presentations/${presentationId}/leaderboard`),
+  finalize: (eventId, presentationId, force = false) => api.post(`/panel/events/${eventId}/presentations/${presentationId}/finalize`, { force }),
+  dashboard: (eventId, presentationId) => api.get(`/panel/events/${eventId}/dashboard`, { params: { presentation_id: presentationId } }),
+};
+
+export const evaluationAPI = {
+  eventGrades: (eventId) => api.get(`/evaluation/events/${eventId}/grades`),
+  teamGrades: (teamId) => api.get(`/evaluation/teams/${teamId}/grades`),
+  exportCsv: (eventId) => api.get(`/evaluation/events/${eventId}/grades.csv`, { responseType: 'blob' }),
+  setWeights: (eventId, weights) => api.put(`/evaluation/events/${eventId}/weights`, { weights }),
+  setReportScore: (teamId, report_score) => api.put(`/evaluation/teams/${teamId}/report-score`, { report_score }),
+  finalize: (eventId) => api.post(`/evaluation/events/${eventId}/finalize`),
+  override: (gradeId, score, reason) => api.put(`/evaluation/grades/${gradeId}/override`, { score, reason }),
+  mine: () => api.get('/evaluation/my'),
+};
+
+export const healthMonitorAPI = {
+  event: (eventId) => api.get(`/health-monitor/events/${eventId}`),
+  team: (teamId) => api.get(`/health-monitor/teams/${teamId}`),
+  checkNow: (teamId) => api.post(`/health-monitor/teams/${teamId}/check`),
 };
 
 export const portfolioAPI = {

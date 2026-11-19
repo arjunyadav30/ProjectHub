@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Calendar, Users, Bell, User, LogOut,
   FolderOpen, Moon, Sun, Menu, X, GraduationCap, Globe,
   MessageSquare, BookOpen, Search, Mic, FileEdit,
-  Building2, CreditCard,
+  Building2, CreditCard, CalendarClock, ClipboardCheck,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn, timeAgo } from '../../utils';
@@ -15,6 +15,8 @@ const studentLinks = [
   { to: '/student/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/student/events', icon: Calendar, label: 'Events' },
   { to: '/student/projects', icon: FolderOpen, label: 'My Projects' },
+  { to: '/student/schedule', icon: CalendarClock, label: 'My Schedule' },
+  { to: '/student/evaluation', icon: ClipboardCheck, label: 'My Evaluation' },
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/student/viva', icon: Mic, label: 'AI Viva' },
   { to: '/student/report-template-lock', icon: FileEdit, label: 'Report (Same Format)' },
@@ -26,6 +28,7 @@ const studentLinks = [
 const facultyLinks = [
   { to: '/faculty/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/faculty/teams', icon: Users, label: 'My Teams' },
+  { to: '/faculty/schedule', icon: CalendarClock, label: 'My Schedule' },
   { to: '/faculty/events', icon: Calendar, label: 'Events' },
   { to: '/chat', icon: MessageSquare, label: 'Chat' },
   { to: '/people', icon: Search, label: 'People' },

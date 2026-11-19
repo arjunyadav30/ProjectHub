@@ -65,7 +65,12 @@ const SignupPage = () => {
     try {
       const safeRole = ['student', 'faculty', 'admin'].includes(role) ? role : 'student';
       const result = await signup({ ...data, role: safeRole }, 'projecthub');
-      toast.success(`Welcome, ${result.user.name.split(' ')[0]}!`);
+      if (result.verification_email_sent === false) {
+        toast.success(`Welcome, ${result.user.name.split(' ')[0]}!`);
+        toast.error('Account created, but the verification email could not be sent. Please contact your administrator.');
+      } else {
+        toast.success(`Welcome, ${result.user.name.split(' ')[0]}! Check your email to verify your address.`);
+      }
       // Redirect based on role
       if (safeRole === 'admin') navigate('/admin/dashboard');
       else if (safeRole === 'faculty') navigate('/faculty/dashboard');

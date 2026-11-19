@@ -44,6 +44,13 @@ const eventSchema = new mongoose.Schema({
     title: { type: String, default: 'Project Evaluation Rubric' },
     criteria: [rubricCriterionSchema],
   },
+  evaluation_weights: {
+    presentation: { type: Number, min: 0, default: 30 },
+    viva: { type: Number, min: 0, default: 20 },
+    contribution: { type: Number, min: 0, default: 20 },
+    report: { type: Number, min: 0, default: 15 },
+    attendance: { type: Number, min: 0, default: 15 },
+  },
   featured_projects: [{
     project_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
     deployed_link: { type: String, default: '' },

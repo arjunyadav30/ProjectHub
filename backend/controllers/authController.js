@@ -82,6 +82,9 @@ const signup = async (req, res, next) => {
     const accessToken = generateAccessToken(user._id, user.role);
     const refreshToken = generateRefreshToken(user._id);
     user.refresh_token = refreshToken;
+    const verificationToken = generateRandomToken();
+    user.email_verification_token = verificationToken;
+    user.email_verification_expires = new Date(Date.now() + (24 * 60 * 60 * 1000));
     await user.save({ validateBeforeSave: false });
     setRefreshTokenCookie(res, refreshToken);
 
@@ -92,7 +95,21 @@ const signup = async (req, res, next) => {
 
     const college = await getCollegeSummary(user.college_id);
 
-    return apiResponse.created(res, { user: user.toSafeObject(), profile, college, accessToken }, 'Registration successful');
+    let verification_email_sent = false;
+    try {
+      await sendVerificationEmail(user.email, user.name, verificationToken);
+      verification_email_sent = true;
+    } catch (error) {
+      console.error(`Failed to send verification email to ${user.email}:`, error.message);
+    }
+
+    return apiResponse.created(res, {
+      user: user.toSafeObject(),
+      profile,
+      college,
+      accessToken,
+      verification_email_sent,
+    }, 'Registration successful');
   } catch (error) { next(error); }
 };
 

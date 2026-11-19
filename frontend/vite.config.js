@@ -5,14 +5,15 @@ export default defineConfig({
   plugins: [react()],
   appType: 'spa',
   server: {
+    host: '0.0.0.0',
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://projecthub-a8ih.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'https://projecthub-a8ih.onrender.com',
+        target: 'http://localhost:5000',
         changeOrigin: true,
         ws: true,
       },

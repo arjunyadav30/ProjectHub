@@ -12,6 +12,9 @@ import {
 } from 'lucide-react';
 import { formatDate, timeAgo, MODULE_STATUS_COLORS, getErrorMessage } from '../../utils';
 import toast from 'react-hot-toast';
+import TeamSignals from './TeamSignals';
+import RepositoryOnboardingCard from '../../components/contribution/RepositoryOnboardingCard';
+import TeamHealthPanel from '../evaluation/TeamHealthPanel';
 
 const MODULE_STATUSES = ['not_started', 'inprogress', 'completed'];
 
@@ -207,7 +210,7 @@ function KanbanColumn({ col, modules, isFaculty, onEdit, onDelete, onAdd, onDrag
 /* ─── Main Page ───────────────────────────────────────────── */
 const TeamDetailPage = () => {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
 
   const [team, setTeam] = useState(null);
@@ -278,6 +281,8 @@ const TeamDetailPage = () => {
   const isFaculty = user.role === 'faculty';
   const canManageTeam = user.role === 'faculty' || user.role === 'admin';
   const acceptedMembers = team?.members?.filter(m => m.status === 'accepted') || [];
+  const isAcceptedMember = acceptedMembers.some(m => String(m.student_id?._id || m.student_id) === String(profile?._id || ''));
+  const canSeeRepoAndHealth = canManageTeam || isAcceptedMember;
   const allMembers = team?.members || []; // Show all members including pending
   const stats = team?.progress_stats || { total: 0, completed: 0, inprogress: 0, percent: 0 };
   const allModules = team?.project?.modules || [];
@@ -706,6 +711,15 @@ const TeamDetailPage = () => {
             <Button size="sm" onClick={saveProjectLinks} loading={saving}>Save Project Info</Button>
           </div>
         </div>
+
+        {canSeeRepoAndHealth && (
+          <>
+            <RepositoryOnboardingCard teamId={id} onChanged={fetchTeam} />
+            <TeamHealthPanel teamId={id} />
+          </>
+        )}
+
+        <TeamSignals teamId={id} members={team.members} authorMap={team.project?.github?.author_map} />
 
         {/* ── Kanban Board ── */}
         <div className="card p-5">

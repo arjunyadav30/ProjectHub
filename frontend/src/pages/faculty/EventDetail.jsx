@@ -168,6 +168,11 @@ const FacultyEventDetail = () => {
               <p className="text-gray-500 text-sm mt-1 max-w-2xl">{event.description}</p>
             </div>
           </div>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {[['schedule', 'Schedule'], ['dashboard', 'Marks Dashboard'], ['grades', 'Final Evaluation'], ['repos', 'Repositories'], ['health', 'Live Links']].map(([path, label]) => (
+              <Link key={path} to={`/evaluation/events/${id}/${path}`} className="btn-secondary px-3 py-2 rounded-lg text-sm">{label}</Link>
+            ))}
+          </div>
 
           {/* Meta info */}
           <div className="grid sm:grid-cols-4 gap-3 mt-4">
