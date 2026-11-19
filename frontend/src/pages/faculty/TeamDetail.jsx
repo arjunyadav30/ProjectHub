@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { teamAPI, facultyAPI, videoAPI, vivaAPI } from '../../api';
+import { teamAPI, facultyAPI, videoAPI, vivaAPI, eventAPI } from '../../api';
 import { useRefetchOnFocus } from '../../hooks/useRefetchOnFocus';
 import { DashboardLayout } from '../../components/common/Layout';
 import { Button, Badge, Modal, Input } from '../../components/common';
@@ -10,10 +10,59 @@ import { getErrorMessage } from '../../utils';
 import RepositoryOnboardingCard from '../../components/contribution/RepositoryOnboardingCard';
 import TeamHealthPanel from '../evaluation/TeamHealthPanel';
 
+const presentationOutOf = (presentation, fallback) => (presentation?.labels || []).reduce((sum, label) => sum + Number(label.marks_out_of || 0), 0) || Number(fallback) || 100;
+
+const buildMarkRows = (team, marks, presentations) => {
+  const members = (team?.members || []).filter(mem => mem.status === 'accepted');
+  const list = presentations.length ? presentations : [{ _id: null, title: 'Presentation', labels: [] }];
+  const rows = [];
+  members.forEach(mem => {
+    const sid = String(mem.student_id?._id || mem.student_id || '');
+    const memberMarks = marks.filter(mk => String(mk.student_id?._id || mk.student_id) === sid);
+    const base = { student_id: sid, name: mem.student_id?.name, enrollment_no: mem.student_id?.enrollment_no };
+    list.forEach(presentation => {
+      const existing = memberMarks.find(mk => String(mk.presentation_id || '') === String(presentation._id || ''));
+      rows.push({
+        ...base,
+        key: `${sid}:${presentation._id || 'none'}`,
+        presentation_id: presentation._id || null,
+        presentation_title: presentation.title || 'Presentation',
+        presentation_marks: existing?.presentation_marks ?? 0,
+        marks_out_of: existing?.marks_out_of ?? presentationOutOf(presentation, 100),
+        attendance: existing?.attendance || 'not_marked',
+        saved: !!existing,
+        dirty: false,
+      });
+    });
+    memberMarks.filter(mk => !list.some(p => String(p._id || '') === String(mk.presentation_id || ''))).forEach(mk => {
+      rows.push({
+        ...base,
+        key: `${sid}:${mk.presentation_id || 'none'}`,
+        presentation_id: mk.presentation_id || null,
+        presentation_title: mk.presentation_title || mk.marks_label || 'Presentation',
+        presentation_marks: mk.presentation_marks ?? 0,
+        marks_out_of: mk.marks_out_of ?? 100,
+        attendance: mk.attendance || 'not_marked',
+        saved: true,
+        dirty: false,
+      });
+    });
+  });
+  return rows;
+};
+
+const markPayload = (row) => ({
+  student_id: row.student_id,
+  presentation_id: row.presentation_id,
+  presentation_title: row.presentation_title,
+  presentation_marks: row.presentation_marks,
+  marks_out_of: row.marks_out_of,
+  attendance: row.attendance,
+});
+
 const FacultyTeamDetail = () => {
   const { id } = useParams();
   const [team, setTeam] = useState(null);
-  const [marks, setMarks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [saving, setSaving] = useState(false);
@@ -23,6 +72,8 @@ const FacultyTeamDetail = () => {
 
   // Marks
   const [marksData, setMarksData] = useState([]);
+  const [presentations, setPresentations] = useState([]);
+  const [savingKey, setSavingKey] = useState('');
 
   // Review
   const [reviewComment, setReviewComment] = useState('');
@@ -42,21 +93,17 @@ const FacultyTeamDetail = () => {
       const t = teamRes.data.data;
       setTeam(t);
       const m = marksRes.data.data || [];
-      setMarks(m);
-
-      const members = t.members?.filter(mem => mem.status === 'accepted') || [];
-      setMarksData(members.map(mem => {
-        const existing = m.find(mk => mk.student_id?._id === mem.student_id?._id);
-        return {
-          student_id: mem.student_id?._id,
-          name: mem.student_id?.name,
-          enrollment_no: mem.student_id?.enrollment_no,
-          presentation_marks: existing?.presentation_marks || 0,
-          attendance: existing?.attendance || 'not_marked',
-          marks_out_of: existing?.marks_out_of || 100,
-          marks_label: existing?.marks_label || 'Presentation',
-        };
-      }));
+      let eventPresentations = [];
+      const eventId = t.event_id?._id || t.event_id;
+      if (eventId) {
+        try {
+          const evRes = await eventAPI.getById(eventId);
+          const eventDoc = evRes.data.data?.event || evRes.data.data;
+          eventPresentations = eventDoc?.presentation_schedules || [];
+        } catch { /* schedule is optional; fall back to a single presentation row */ }
+      }
+      setPresentations(eventPresentations);
+      setMarksData(buildMarkRows(t, m, eventPresentations));
     } catch (e) { toast.error('Failed to load team'); }
     finally { setLoading(false); }
   }, [id]);
@@ -86,13 +133,25 @@ const FacultyTeamDetail = () => {
   };
 
   const handleSaveMarks = async () => {
+    const changed = marksData.filter(row => row.dirty);
+    if (!changed.length) return toast('No changes to save');
     setSaving(true);
     try {
-      await facultyAPI.giveMarks(id, marksData);
-      toast.success('Marks saved');
+      await facultyAPI.giveMarks(id, changed.map(markPayload));
+      toast.success(`${changed.length} mark row(s) saved`);
       fetchTeam();
     } catch (e) { toast.error(getErrorMessage(e)); }
     finally { setSaving(false); }
+  };
+
+  const saveMarkRow = async (row) => {
+    setSavingKey(row.key);
+    try {
+      await facultyAPI.giveMarks(id, [markPayload(row)]);
+      toast.success(`Marks saved for ${row.name}`);
+      fetchTeam();
+    } catch (e) { toast.error(getErrorMessage(e)); }
+    finally { setSavingKey(''); }
   };
 
   const handleSubmissionReview = async (action) => {
@@ -390,39 +449,60 @@ const FacultyTeamDetail = () => {
         {/* Marks Tab */}
         {activeTab === 'marks' && (
           <div className="card p-5 space-y-4">
-            <h2 className="font-semibold flex items-center gap-2"><Award className="w-5 h-5 text-amber-500" /> Marks & Attendance</h2>
-            <div className="space-y-3">
-              {marksData.map((m, i) => (
-                <div key={m.student_id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="font-medium">{m.name}</p>
-                      <p className="text-xs text-gray-500">{m.enrollment_no}</p>
-                    </div>
-                    <select
-                      value={m.attendance}
-                      onChange={e => setMarksData(d => d.map((x, j) => j === i ? {...x, attendance: e.target.value} : x))}
-                      className="input text-sm py-1 px-2 w-32">
-                      <option value="not_marked">Not Marked</option>
-                      <option value="present">Present</option>
-                      <option value="absent">Absent</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="text-sm text-gray-600 dark:text-gray-400">{m.marks_label}:</label>
-                    <input
-                      type="number" min={0} max={m.marks_out_of}
-                      value={m.presentation_marks ?? 0}
-                      disabled={m.attendance === 'absent'}
-                      onChange={e => setMarksData(d => d.map((x, j) => j === i ? {...x, presentation_marks: parseInt(e.target.value) || 0} : x))}
-                      className="input w-20 text-center"
-                    />
-                    <span className="text-sm text-gray-500">/ {m.marks_out_of}</span>
-                  </div>
-                </div>
-              ))}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="font-semibold flex items-center gap-2"><Award className="w-5 h-5 text-amber-500" /> Marks & Attendance</h2>
+                <p className="text-xs text-gray-500 mt-1">All marks for this team across {presentations.length ? `${presentations.length} presentation(s)` : 'all entries'}. Students see saved marks on their My Evaluation page.</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{marksData.filter(row => row.dirty).length} unsaved</span>
+                <Button onClick={handleSaveMarks} loading={saving} disabled={!marksData.some(row => row.dirty)}>Save all changed</Button>
+              </div>
             </div>
-            <Button onClick={handleSaveMarks} loading={saving}>Save Marks</Button>
+            {marksData.length ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[760px]">
+                  <thead className="bg-gray-50 dark:bg-gray-800 text-left">
+                    <tr>{['Student', 'Presentation', 'Attendance', 'Marks', 'Out of', ''].map(h => <th key={h} className="px-3 py-2 font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">{h}</th>)}</tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {marksData.map(row => {
+                      const patch = (update) => setMarksData(rows => rows.map(x => x.key === row.key ? { ...x, ...update, dirty: true } : x));
+                      return (
+                        <tr key={row.key}>
+                          <td className="px-3 py-2">
+                            <p className="font-medium">{row.name}</p>
+                            <p className="text-xs text-gray-500">{row.enrollment_no}</p>
+                          </td>
+                          <td className="px-3 py-2">
+                            {row.presentation_title}
+                            {row.saved && !row.dirty && <span className="block text-[11px] text-emerald-600 dark:text-emerald-400">saved</span>}
+                          </td>
+                          <td className="px-3 py-2">
+                            <select value={row.attendance} onChange={e => patch({ attendance: e.target.value, ...(e.target.value === 'absent' ? { presentation_marks: 0 } : {}) })} className="input text-sm py-1 px-2 w-32">
+                              <option value="not_marked">Not Marked</option>
+                              <option value="present">Present</option>
+                              <option value="absent">Absent</option>
+                            </select>
+                          </td>
+                          <td className="px-3 py-2">
+                            <input type="number" min={0} max={row.marks_out_of} value={row.presentation_marks ?? 0} disabled={row.attendance === 'absent'}
+                              onChange={e => patch({ presentation_marks: Math.max(0, parseInt(e.target.value, 10) || 0) })} className="input w-20 text-center" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <input type="number" min={1} max={1000} value={row.marks_out_of ?? 100}
+                              onChange={e => patch({ marks_out_of: Math.max(1, parseInt(e.target.value, 10) || 1) })} className="input w-20 text-center" />
+                          </td>
+                          <td className="px-3 py-2">
+                            <Button size="sm" variant="secondary" loading={savingKey === row.key} onClick={() => saveMarkRow(row)}>Save</Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : <p className="text-sm text-gray-500">No accepted members in this team.</p>}
           </div>
         )}
 
